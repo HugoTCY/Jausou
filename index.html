@@ -6,184 +6,123 @@
     <title>找數</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { 
-            font-family: 'Noto Sans TC', sans-serif; 
-            -webkit-tap-highlight-color: transparent;
-            background-color: #0f172a;
-            overflow-x: hidden;
-        }
-        
+        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #0f172a; overflow-x: hidden; }
         .blob { position: fixed; width: 300px; height: 300px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); filter: blur(80px); border-radius: 50%; z-index: -1; opacity: 0.3; animation: move 20s infinite alternate; }
-        .blob-2 { right: -50px; top: 20%; background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%); animation-duration: 25s; }
         @keyframes move { from { transform: translate(0, 0); } to { transform: translate(100px, 150px); } }
-
-        .app-title { 
-            font-weight: 900;
-            background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4));
-            letter-spacing: 6px;
-        }
-
-        .glass-card {
-            background: rgba(255, 255, 255, 0.07);
-            backdrop-filter: blur(16px);
-            -webkit-backdrop-filter: blur(16px);
-            border: 1px solid rgba(255, 255, 255, 0.1);
-            border-radius: 30px;
-        }
-
+        .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); letter-spacing: 6px; }
+        .glass-card { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
         .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
         .switch input { opacity: 0; width: 0; height: 0; }
         .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 24px; }
         .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: #6366f1; }
         input:checked + .slider:before { transform: translateX(20px); }
-
         input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; font-weight: 300 !important; }
-        input::placeholder { font-weight: 300; opacity: 0.5; }
-        .amount-input { font-weight: 700 !important; }
+        /* 針對金額兩字瘦身 */
+        ::placeholder { font-weight: 300 !important; font-size: 0.9rem; opacity: 0.4; }
+        .thin-label { font-weight: 300; font-size: 0.85rem; }
     </style>
 </head>
 <body class="min-h-screen pb-10 text-white">
     <div class="blob"></div>
-    <div class="blob blob-2"></div>
-
     <div id="app" class="max-w-md mx-auto px-5">
-        
-        <header class="pt-20 pb-12 text-center">
-            <h1 class="app-title text-6xl">找數</h1>
-        </header>
+        <header class="pt-20 pb-12 text-center"><h1 class="app-title text-6xl">找數</h1></header>
 
         <div class="space-y-6">
             <section class="glass-card p-6">
                 <div class="flex justify-between items-center mb-5">
                     <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase">匯率設定</h2>
-                    <div class="flex items-center space-x-3">
-                        <span class="text-[9px] opacity-40">手動輸入</span>
-                        <label class="switch">
-                            <input type="checkbox" v-model="isCustomRate">
-                            <span class="slider"></span>
-                        </label>
-                    </div>
+                    <label class="switch"><input type="checkbox" v-model="isCustomRate"><span class="slider"></span></label>
                 </div>
                 <div class="grid grid-cols-2 gap-3 mb-4">
                     <select v-model="foreignCurrency" @change="fetchRate" :disabled="isCustomRate" class="p-4 rounded-2xl text-sm outline-none">
-                        <option value="JPY">🇯🇵 日圓 JPY</option>
-                        <option value="KRW">🇰🇷 韓圓 KRW</option>
-                        <option value="TWD">🇹🇼 台幣 TWD</option>
-                        <option value="THB">🇹🇭 泰銖 THB</option>
+                        <option value="JPY">🇯🇵 JPY</option><option value="KRW">🇰🇷 KRW</option><option value="TWD">🇹🇼 TWD</option><option value="THB">🇹🇭 THB</option>
                     </select>
-                    <select v-model="baseCurrency" class="p-4 rounded-2xl text-sm outline-none">
-                        <option value="HKD">🇭🇰 港幣 HKD</option>
-                    </select>
+                    <select v-model="baseCurrency" class="p-4 rounded-2xl text-sm outline-none"><option value="HKD">🇭🇰 HKD</option></select>
                 </div>
-                <div class="relative">
-                    <input type="number" v-model="exchangeRate" :readonly="!isCustomRate" 
-                           class="w-full p-4 rounded-2xl font-mono text-2xl text-center outline-none transition-all amount-input"
-                           :class="isCustomRate ? 'ring-2 ring-indigo-500/40' : 'opacity-40'"
-                           step="0.000001">
-                    <div v-if="loadingRate" class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-2xl text-xs text-indigo-300 font-medium italic">獲取匯率中...</div>
-                </div>
+                <input type="number" v-model="exchangeRate" :readonly="!isCustomRate" class="w-full p-4 rounded-2xl font-mono text-xl text-center outline-none opacity-50" step="0.000001">
             </section>
 
             <section class="glass-card p-6">
                 <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase mb-4">團友名單</h2>
-                <div class="flex gap-2 mb-6">
-                    <input type="text" v-model="newMember" @keyup.enter="addMember" placeholder="輸入姓名" class="flex-1 p-4 rounded-2xl outline-none">
-                    <button @click="addMember" class="bg-indigo-600 text-white px-6 rounded-2xl font-bold active:scale-95 transition-all text-sm">新增</button>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" v-model="newMember" @keyup.enter="addMember" placeholder="輸入姓名" class="flex-1 p-3 rounded-2xl outline-none">
+                    <button @click="addMember" class="bg-indigo-600 px-5 rounded-2xl font-bold text-sm">新增</button>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <span v-for="(m, i) in members" class="bg-white/10 px-4 py-2 rounded-xl text-sm font-medium flex items-center border border-white/5">
-                        {{ m }}
-                        <button @click="removeMember(i)" class="ml-2 text-white/30 hover:text-red-400">✕</button>
-                    </span>
+                    <span v-for="(m, i) in members" class="bg-white/10 px-3 py-1.5 rounded-xl text-xs font-light border border-white/5">{{ m }}<button @click="removeMember(i)" class="ml-2 opacity-30">✕</button></span>
                 </div>
             </section>
 
             <section class="glass-card p-6 shadow-2xl">
-                <h2 class="text-center font-bold text-lg mb-8 tracking-tight text-white/80">新增消費</h2>
-                <div class="space-y-6">
-                    <div class="relative">
-                        <span class="absolute left-5 top-5 text-indigo-400 font-bold text-xl">{{foreignCurrency}}</span>
-                        <input type="number" v-model="expense.amount" placeholder="金額" class="w-full p-5 pl-20 rounded-[30px] text-4xl font-bold outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all amount-input">
-                    </div>
-                    
-                    <input type="text" v-model="expense.desc" placeholder="項目內容" class="w-full p-4 rounded-2xl outline-none">
-                    
+                <div class="relative mb-6">
+                    <span class="absolute left-5 top-5 text-indigo-400 font-light text-sm">{{foreignCurrency}}</span>
+                    <input type="number" v-model="expense.amount" placeholder="金額" class="w-full p-5 pl-16 rounded-[24px] text-3xl font-bold outline-none focus:ring-1 focus:ring-indigo-500/30 transition-all">
+                </div>
+                <input type="text" v-model="expense.desc" placeholder="項目內容" class="w-full p-4 rounded-2xl outline-none mb-4">
+                <div class="grid grid-cols-1 gap-4 mb-6">
                     <div>
-                        <label class="text-[10px] text-indigo-300 font-black uppercase ml-2 mb-2 block">付款人</label>
-                        <select v-model="expense.payer" class="w-full p-4 rounded-2xl font-medium outline-none">
+                        <label class="text-[10px] text-indigo-300 uppercase ml-2 mb-2 block font-light">付款人</label>
+                        <select v-model="expense.payer" class="w-full p-3 rounded-xl text-sm outline-none">
                             <option v-for="m in members" :value="m">{{m}}</option>
                         </select>
                     </div>
-
-                    <div>
-                        <label class="text-[10px] text-indigo-300 font-black uppercase text-center mb-3 block">分擔團友</label>
-                        <div class="flex flex-wrap gap-2 justify-center">
-                            <button v-for="m in members" @click="toggleParticipant(m)" 
-                                    :class="['px-5 py-2 rounded-2xl border transition-all font-medium text-xs', expense.participants.includes(m) ? 'bg-white text-indigo-900 border-white shadow-lg' : 'bg-transparent text-white/40 border-white/10']">
-                                {{m}}
-                            </button>
-                        </div>
-                    </div>
-
-                    <button @click="addRecord" class="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-5 rounded-[24px] font-black text-xl shadow-xl active:scale-95 transition-all">
-                        確認記錄
-                    </button>
                 </div>
+                <div class="mb-6">
+                    <label class="text-[10px] text-indigo-300 uppercase text-center mb-3 block font-light">分擔團友</label>
+                    <div class="flex flex-wrap gap-2 justify-center">
+                        <button v-for="m in members" @click="toggleParticipant(m)" 
+                                :class="['px-4 py-1.5 rounded-xl border transition-all text-xs font-light', expense.participants.includes(m) ? 'bg-white text-indigo-900 border-white' : 'bg-transparent text-white/30 border-white/10']">
+                            {{m}}
+                        </button>
+                    </div>
+                </div>
+                <button @click="addRecord" class="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-2xl font-bold text-lg active:scale-95 transition-all">確認記錄</button>
             </section>
 
             <section v-if="history.length > 0" class="glass-card p-6 shadow-2xl">
-                <div class="flex justify-between items-end mb-8">
-                    <h2 class="font-black text-3xl text-white tracking-tighter">SETTLE</h2>
-                    <button @click="clearAll" class="text-[9px] font-bold text-red-400/40 uppercase hover:text-red-400">清空紀錄</button>
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="font-black text-3xl tracking-tighter">SETTLE</h2>
+                    <div class="flex bg-white/5 rounded-full p-1 border border-white/10">
+                        <button @click="settleInBase = true" :class="['px-3 py-1 rounded-full text-[10px] font-bold transition-all', settleInBase ? 'bg-indigo-600 text-white' : 'text-white/40']">HKD</button>
+                        <button @click="settleInBase = false" :class="['px-3 py-1 rounded-full text-[10px] font-bold transition-all', !settleInBase ? 'bg-indigo-600 text-white' : 'text-white/40']">{{foreignCurrency}}</button>
+                    </div>
                 </div>
-                
                 <div class="space-y-4 mb-10">
                     <div v-for="s in settlement" class="p-6 bg-white/5 rounded-[30px] border border-white/5 flex justify-between items-center">
-                        <div class="flex items-center space-x-3 font-bold text-lg">
-                            <span>{{s.from}}</span>
-                            <span class="text-indigo-500 opacity-50">➜</span>
-                            <span>{{s.to}}</span>
-                        </div>
+                        <div class="flex items-center space-x-3 font-bold text-lg"><span>{{s.from}}</span><span class="text-indigo-500 opacity-50">➜</span><span>{{s.to}}</span></div>
                         <div class="text-right">
-                            <span class="block text-[9px] font-black text-indigo-400 uppercase tracking-widest">應付</span>
-                            <span class="text-2xl font-bold font-mono">${{s.amount.toFixed(2)}}</span>
+                            <span class="block text-[9px] font-black text-indigo-400 uppercase">{{ settleInBase ? 'HKD' : foreignCurrency }} 應付</span>
+                            <span class="text-2xl font-bold font-mono">{{s.amount.toFixed(settleInBase ? 2 : 0)}}</span>
                         </div>
                     </div>
                 </div>
-
                 <div class="border-t border-white/10 pt-6">
-                    <h3 class="text-indigo-300 text-[10px] font-black uppercase tracking-widest mb-4">詳細歷史</h3>
+                    <h3 class="text-indigo-300 text-[10px] font-black uppercase mb-4">詳細歷史</h3>
                     <div class="space-y-3">
-                        <div v-for="h in history" class="bg-black/20 p-4 rounded-2xl text-xs leading-relaxed relative border border-white/5">
+                        <div v-for="h in history" class="bg-black/20 p-4 rounded-2xl text-xs border border-white/5">
                             <div class="text-[9px] text-white/20 font-mono mb-1">{{ h.timestamp }}</div>
                             <div class="flex justify-between font-bold mb-1">
-                                <span class="text-white text-sm font-medium">{{ h.desc || '未命名項目' }}</span>
-                                <span class="text-indigo-400 text-sm font-mono">{{ h.amount }}{{ foreignCurrency }}</span>
+                                <span class="text-white font-medium">{{ h.desc || '未命名' }}</span>
+                                <span class="text-indigo-400 font-mono">{{ h.amount }}{{ foreignCurrency }}</span>
                             </div>
-                            <div class="text-white/30 space-y-0.5 text-[11px]">
-                                <div><span class="text-white/50">付款人：</span>{{ h.payer }}</div>
-                                <div><span class="text-white/50">分擔：</span>{{ h.participants.join(', ') }}</div>
-                            </div>
+                            <div class="text-white/30 text-[10px]">付款：{{ h.payer }} | 分擔：{{ h.participants.join(', ') }}</div>
                         </div>
                     </div>
+                    <button @click="clearAll" class="w-full mt-6 text-[9px] text-red-400/40 uppercase hover:text-red-400 py-2">清空所有紀錄</button>
                 </div>
             </section>
         </div>
     </div>
-
     <script>
         const { createApp } = Vue;
         createApp({
             data() {
                 return {
                     foreignCurrency: 'JPY', baseCurrency: 'HKD', exchangeRate: 0.05, 
-                    isCustomRate: false,
+                    isCustomRate: false, settleInBase: true,
                     newMember: '', members: [],
                     expense: { amount: null, desc: '', payer: '', participants: [] },
                     history: [], loadingRate: false
@@ -191,21 +130,21 @@
             },
             mounted() {
                 this.fetchRate();
-                const savedHistory = localStorage.getItem('jausou_v7_hist'); if (savedHistory) this.history = JSON.parse(savedHistory);
-                const savedMembers = localStorage.getItem('jausou_v7_mems'); if (savedMembers) this.members = JSON.parse(savedMembers);
+                const savedHistory = localStorage.getItem('jausou_v8_hist'); if (savedHistory) this.history = JSON.parse(savedHistory);
+                const savedMembers = localStorage.getItem('jausou_v8_mems'); if (savedMembers) this.members = JSON.parse(savedMembers);
             },
             watch: {
                 isCustomRate(val) { if (!val) this.fetchRate(); },
-                members: { handler(val) { localStorage.setItem('jausou_v7_mems', JSON.stringify(val)); }, deep: true },
-                history: { handler(val) { localStorage.setItem('jausou_v7_hist', JSON.stringify(val)); }, deep: true }
+                members: { handler(val) { localStorage.setItem('jausou_v8_mems', JSON.stringify(val)); }, deep: true },
+                history: { handler(val) { localStorage.setItem('jausou_v8_hist', JSON.stringify(val)); }, deep: true }
             },
             computed: {
                 settlement() {
                     let net = {}; this.members.forEach(m => net[m] = 0);
                     this.history.forEach(r => {
-                        let base = r.amount * r.rate;
-                        let share = base / r.participants.length;
-                        net[r.payer] += base;
+                        let amount = this.settleInBase ? (r.amount * r.rate) : r.amount;
+                        let share = amount / r.participants.length;
+                        net[r.payer] += amount;
                         r.participants.forEach(p => net[p] -= share);
                     });
                     let d = [], c = [];
@@ -248,18 +187,13 @@
                     i > -1 ? this.expense.participants.splice(i, 1) : this.expense.participants.push(m);
                 },
                 addRecord() {
-                    if (!this.expense.amount || !this.expense.payer || this.expense.participants.length === 0) return alert("請入齊金額、付款人同分擔團友！");
+                    if (!this.expense.amount || !this.expense.payer || this.expense.participants.length === 0) return alert("資料不足！");
                     const now = new Date();
-                    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    this.history.unshift({
-                        ...this.expense, 
-                        participants:[...this.expense.participants], 
-                        rate:parseFloat(this.exchangeRate),
-                        timestamp: timestamp
-                    });
+                    const timestamp = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    this.history.unshift({...this.expense, participants:[...this.expense.participants], rate:parseFloat(this.exchangeRate), timestamp});
                     this.expense.amount = null; this.expense.desc = '';
                 },
-                clearAll() { if(confirm("確定清空所有紀錄嗎？")) this.history = []; }
+                clearAll() { if(confirm("清空紀錄？")) this.history = []; }
             }
         }).mount('#app')
     </script>
