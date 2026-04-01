@@ -4,196 +4,186 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>找數</title>
+    
+    <link rel="apple-touch-icon" href="https://github.com/HugoTCY/Jausou/blob/eb37fbdc4b6942fba1e79d390bac1bdd9d3b722e/Screenshot_20260402_064835_Google.png">
+    <link rel="icon" href="https://github.com/HugoTCY/Jausou/blob/eb37fbdc4b6942fba1e79d390bac1bdd9d3b722e/Screenshot_20260402_064835_Google.png">
+
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; -webkit-tap-highlight-color: transparent; background-color: #0f172a; overflow-x: hidden; }
-        .blob { position: fixed; width: 300px; height: 300px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); filter: blur(80px); border-radius: 50%; z-index: -1; opacity: 0.3; animation: move 20s infinite alternate; }
-        @keyframes move { from { transform: translate(0, 0); } to { transform: translate(100px, 150px); } }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); letter-spacing: 6px; }
-        .glass-card { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(16px); -webkit-backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
-        .switch { position: relative; display: inline-block; width: 44px; height: 24px; }
-        .switch input { opacity: 0; width: 0; height: 0; }
-        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: rgba(255,255,255,0.1); transition: .4s; border-radius: 24px; }
-        .slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 3px; bottom: 3px; background-color: white; transition: .4s; border-radius: 50%; }
-        input:checked + .slider { background-color: #6366f1; }
-        input:checked + .slider:before { transform: translateX(20px); }
-        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; font-weight: 300 !important; }
-        /* 針對金額兩字瘦身 */
-        ::placeholder { font-weight: 300 !important; font-size: 0.9rem; opacity: 0.4; }
-        .thin-label { font-weight: 300; font-size: 0.85rem; }
+        .glass-card { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
+        
+        /* 彈出計數機面板 (B款視覺) */
+        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; border-top: 1px solid rgba(255,255,255,0.1); border-radius: 30px 30px 0 0; z-index: 50; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); max-height: 85vh; overflow-y: auto; }
+        .calc-panel.active { transform: translateY(0); }
+        .calc-btn { background: rgba(255,255,255,0.03); height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.1rem; font-weight: 300; }
+        .calc-btn:active { background: rgba(255,255,255,0.15); }
+        .calc-btn.op { color: #818cf8; }
+        .calc-btn.ok { background: #4f46e5; font-weight: 700; }
+        
+        .member-chip { padding: 10px; border-radius: 12px; font-size: 12px; border: 1px solid rgba(255,255,255,0.1); background: rgba(255,255,255,0.05); transition: all 0.2s; text-align: center; }
+        .member-chip:active { background: #6366f1; border-color: #6366f1; }
+        
+        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; }
     </style>
 </head>
-<body class="min-h-screen pb-10 text-white">
-    <div class="blob"></div>
+<body class="min-h-screen pb-10">
     <div id="app" class="max-w-md mx-auto px-5">
-        <header class="pt-20 pb-12 text-center"><h1 class="app-title text-6xl">找數</h1></header>
+        <header class="pt-16 pb-8 text-center"><h1 class="app-title text-6xl text-white">找數</h1></header>
 
         <div class="space-y-6">
-            <section class="glass-card p-6">
-                <div class="flex justify-between items-center mb-5">
-                    <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase">匯率設定</h2>
-                    <label class="switch"><input type="checkbox" v-model="isCustomRate"><span class="slider"></span></label>
-                </div>
-                <div class="grid grid-cols-2 gap-3 mb-4">
-                    <select v-model="foreignCurrency" @change="fetchRate" :disabled="isCustomRate" class="p-4 rounded-2xl text-sm outline-none">
-                        <option value="JPY">🇯🇵 JPY</option><option value="KRW">🇰🇷 KRW</option><option value="TWD">🇹🇼 TWD</option><option value="THB">🇹🇭 THB</option>
-                    </select>
-                    <select v-model="baseCurrency" class="p-4 rounded-2xl text-sm outline-none"><option value="HKD">🇭🇰 HKD</option></select>
-                </div>
-                <input type="number" v-model="exchangeRate" :readonly="!isCustomRate" class="w-full p-4 rounded-2xl font-mono text-xl text-center outline-none opacity-50" step="0.000001">
-            </section>
-
-            <section class="glass-card p-6">
-                <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase mb-4">團友名單</h2>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" v-model="newMember" @keyup.enter="addMember" placeholder="輸入姓名" class="flex-1 p-3 rounded-2xl outline-none">
-                    <button @click="addMember" class="bg-indigo-600 px-5 rounded-2xl font-bold text-sm">新增</button>
-                </div>
-                <div class="flex flex-wrap gap-2">
-                    <span v-for="(m, i) in members" class="bg-white/10 px-3 py-1.5 rounded-xl text-xs font-light border border-white/5">{{ m }}<button @click="removeMember(i)" class="ml-2 opacity-30">✕</button></span>
-                </div>
+            <section class="glass-card p-4 flex justify-between items-center text-[10px] opacity-50">
+                <select v-model="foreignCurrency" @change="fetchRate" class="bg-transparent outline-none">
+                    <option value="JPY">🇯🇵 JPY</option><option value="KRW">🇰🇷 KRW</option><option value="TWD">🇹🇼 TWD</option>
+                </select>
+                <span class="font-mono">Rate: {{exchangeRate}}</span>
             </section>
 
             <section class="glass-card p-6 shadow-2xl">
-                <div class="relative mb-6">
-                    <span class="absolute left-5 top-5 text-indigo-400 font-light text-sm">{{foreignCurrency}}</span>
-                    <input type="number" v-model="expense.amount" placeholder="金額" class="w-full p-5 pl-16 rounded-[24px] text-3xl font-bold outline-none focus:ring-1 focus:ring-indigo-500/30 transition-all">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-[10px] font-black opacity-30 tracking-widest uppercase">New Expense</span>
+                    <div class="flex items-center gap-2">
+                        <span class="text-[10px] opacity-40">累加模式</span>
+                        <button @click="isAccumulate = !isAccumulate" :class="['w-10 h-5 rounded-full relative transition-all', isAccumulate ? 'bg-indigo-600' : 'bg-white/10']">
+                            <div :class="['absolute top-1 w-3 h-3 bg-white rounded-full transition-all', isAccumulate ? 'left-6' : 'left-1']"></div>
+                        </button>
+                    </div>
                 </div>
-                <input type="text" v-model="expense.desc" placeholder="項目內容" class="w-full p-4 rounded-2xl outline-none mb-4">
-                <div class="grid grid-cols-1 gap-4 mb-6">
-                    <div>
-                        <label class="text-[10px] text-indigo-300 uppercase ml-2 mb-2 block font-light">付款人</label>
-                        <select v-model="expense.payer" class="w-full p-3 rounded-xl text-sm outline-none">
+
+                <div class="relative mb-6">
+                    <input type="number" v-model="expense.amount" readonly @click="showCalc = true" placeholder="0" class="w-full p-6 rounded-[24px] text-5xl font-bold text-center bg-transparent border border-white/10 outline-none cursor-pointer">
+                    <div v-if="isAccumulate && customSplits.length > 0" class="mt-4 space-y-1 border-t border-white/5 pt-3">
+                        <div v-for="(s, index) in customSplits" :key="index" class="flex justify-between text-[11px] font-light">
+                            <span class="opacity-40">{{s.name}}</span>
+                            <span class="text-indigo-300">{{s.amount}} {{foreignCurrency}}</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="space-y-4">
+                    <input type="text" v-model="expense.desc" placeholder="項目內容 (e.g. 燒肉)" class="w-full p-4 rounded-xl text-sm outline-none">
+                    <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl">
+                        <span class="text-[10px] opacity-40 uppercase font-bold">誰付款？</span>
+                        <select v-model="expense.payer" class="bg-transparent font-bold text-sm outline-none">
                             <option v-for="m in members" :value="m">{{m}}</option>
                         </select>
                     </div>
                 </div>
-                <div class="mb-6">
-                    <label class="text-[10px] text-indigo-300 uppercase text-center mb-3 block font-light">分擔團友</label>
-                    <div class="flex flex-wrap gap-2 justify-center">
-                        <button v-for="m in members" @click="toggleParticipant(m)" 
-                                :class="['px-4 py-1.5 rounded-xl border transition-all text-xs font-light', expense.participants.includes(m) ? 'bg-white text-indigo-900 border-white' : 'bg-transparent text-white/30 border-white/10']">
-                            {{m}}
-                        </button>
-                    </div>
-                </div>
-                <button @click="addRecord" class="w-full bg-gradient-to-r from-indigo-500 to-purple-500 text-white py-4 rounded-2xl font-bold text-lg active:scale-95 transition-all">確認記錄</button>
+
+                <button @click="addRecord" class="w-full mt-6 bg-gradient-to-r from-indigo-600 to-purple-600 py-4 rounded-2xl font-bold active:scale-95 transition-all">確認入數</button>
             </section>
 
-            <section v-if="history.length > 0" class="glass-card p-6 shadow-2xl">
-                <div class="flex justify-between items-center mb-8">
-                    <h2 class="font-black text-3xl tracking-tighter">SETTLE</h2>
-                    <div class="flex bg-white/5 rounded-full p-1 border border-white/10">
-                        <button @click="settleInBase = true" :class="['px-3 py-1 rounded-full text-[10px] font-bold transition-all', settleInBase ? 'bg-indigo-600 text-white' : 'text-white/40']">HKD</button>
-                        <button @click="settleInBase = false" :class="['px-3 py-1 rounded-full text-[10px] font-bold transition-all', !settleInBase ? 'bg-indigo-600 text-white' : 'text-white/40']">{{foreignCurrency}}</button>
-                    </div>
+            <section class="glass-card p-6">
+                <h3 class="text-[10px] opacity-30 font-black mb-4 uppercase tracking-widest">Members</h3>
+                <div class="flex gap-2 mb-4">
+                    <input type="text" v-model="newMemberName" @keyup.enter="addMember" placeholder="輸入名單" class="flex-1 p-3 rounded-xl text-xs outline-none">
+                    <button @click="addMember" class="bg-white/10 px-4 rounded-xl text-xs font-bold">新增</button>
                 </div>
-                <div class="space-y-4 mb-10">
-                    <div v-for="s in settlement" class="p-6 bg-white/5 rounded-[30px] border border-white/5 flex justify-between items-center">
-                        <div class="flex items-center space-x-3 font-bold text-lg"><span>{{s.from}}</span><span class="text-indigo-500 opacity-50">➜</span><span>{{s.to}}</span></div>
-                        <div class="text-right">
-                            <span class="block text-[9px] font-black text-indigo-400 uppercase">{{ settleInBase ? 'HKD' : foreignCurrency }} 應付</span>
-                            <span class="text-2xl font-bold font-mono">{{s.amount.toFixed(settleInBase ? 2 : 0)}}</span>
-                        </div>
-                    </div>
-                </div>
-                <div class="border-t border-white/10 pt-6">
-                    <h3 class="text-indigo-300 text-[10px] font-black uppercase mb-4">詳細歷史</h3>
-                    <div class="space-y-3">
-                        <div v-for="h in history" class="bg-black/20 p-4 rounded-2xl text-xs border border-white/5">
-                            <div class="text-[9px] text-white/20 font-mono mb-1">{{ h.timestamp }}</div>
-                            <div class="flex justify-between font-bold mb-1">
-                                <span class="text-white font-medium">{{ h.desc || '未命名' }}</span>
-                                <span class="text-indigo-400 font-mono">{{ h.amount }}{{ foreignCurrency }}</span>
-                            </div>
-                            <div class="text-white/30 text-[10px]">付款：{{ h.payer }} | 分擔：{{ h.participants.join(', ') }}</div>
-                        </div>
-                    </div>
-                    <button @click="clearAll" class="w-full mt-6 text-[9px] text-red-400/40 uppercase hover:text-red-400 py-2">清空所有紀錄</button>
+                <div class="flex flex-wrap gap-2">
+                    <span v-for="(m, i) in members" :key="i" class="text-[11px] bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg flex items-center">
+                        {{m}} <button @click="members.splice(i, 1)" class="ml-2 opacity-20">×</button>
+                    </span>
                 </div>
             </section>
+
+            </div>
+
+        <div :class="['calc-panel p-6 shadow-2xl', showCalc ? 'active' : '']">
+            <div class="flex justify-between items-center mb-6">
+                <div class="text-3xl font-mono text-indigo-400">{{ calcDisplay || '0' }}</div>
+                <button @click="showCalc = false" class="text-[10px] font-bold opacity-30 border border-white/20 px-3 py-1 rounded-full uppercase">Done</button>
+            </div>
+
+            <div v-if="isAccumulate" class="mb-6">
+                <p class="text-[10px] opacity-30 mb-3 uppercase font-black">點擊團友名稱即時分賬</p>
+                <div v-if="members.length === 0" class="text-[11px] opacity-20 italic">請先在主介面新增團友</div>
+                <div class="grid grid-cols-3 gap-2">
+                    <button v-for="m in members" :key="m" @click="assignToMember(m)" class="member-chip">
+                        {{m}}
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-4 gap-2">
+                <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+']" 
+                        @click="calcInput(b)" class="calc-btn" :class="{op: isNaN(b)}">{{b}}</button>
+                <button @click="calcResult" class="calc-btn col-span-2 op">=</button>
+                <button @click="closeCalc" class="calc-btn ok col-span-2">OK</button>
+            </div>
         </div>
+        <div v-if="showCalc" @click="showCalc = false" class="fixed inset-0 bg-black/60 z-40 backdrop-blur-sm"></div>
     </div>
+
     <script>
         const { createApp } = Vue;
         createApp({
             data() {
                 return {
-                    foreignCurrency: 'JPY', baseCurrency: 'HKD', exchangeRate: 0.05, 
-                    isCustomRate: false, settleInBase: true,
-                    newMember: '', members: [],
-                    expense: { amount: null, desc: '', payer: '', participants: [] },
-                    history: [], loadingRate: false
+                    foreignCurrency: 'JPY', baseCurrency: 'HKD', exchangeRate: 0.052,
+                    members: [], newMemberName: '', history: [],
+                    expense: { amount: 0, desc: '', payer: '', participants: [] },
+                    showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: []
                 }
             },
             mounted() {
                 this.fetchRate();
-                const savedHistory = localStorage.getItem('jausou_v8_hist'); if (savedHistory) this.history = JSON.parse(savedHistory);
-                const savedMembers = localStorage.getItem('jausou_v8_mems'); if (savedMembers) this.members = JSON.parse(savedMembers);
-            },
-            watch: {
-                isCustomRate(val) { if (!val) this.fetchRate(); },
-                members: { handler(val) { localStorage.setItem('jausou_v8_mems', JSON.stringify(val)); }, deep: true },
-                history: { handler(val) { localStorage.setItem('jausou_v8_hist', JSON.stringify(val)); }, deep: true }
-            },
-            computed: {
-                settlement() {
-                    let net = {}; this.members.forEach(m => net[m] = 0);
-                    this.history.forEach(r => {
-                        let amount = this.settleInBase ? (r.amount * r.rate) : r.amount;
-                        let share = amount / r.participants.length;
-                        net[r.payer] += amount;
-                        r.participants.forEach(p => net[p] -= share);
-                    });
-                    let d = [], c = [];
-                    for (let n in net) {
-                        if (net[n] < -0.01) d.push({n, a: -net[n]});
-                        else if (net[n] > 0.01) c.push({n, a: net[n]});
-                    }
-                    let res = [], di = 0, ci = 0;
-                    while (di < d.length && ci < c.length) {
-                        let p = Math.min(d[di].a, c[ci].a);
-                        res.push({from: d[di].n, to: c[ci].n, amount: p});
-                        d[di].a -= p; c[ci].a -= p;
-                        if (d[di].a < 0.01) di++; if (c[ci].a < 0.01) ci++;
-                    }
-                    return res;
-                }
+                const m = localStorage.getItem('jausou_v10_mems'); if (m) this.members = JSON.parse(m);
+                if (this.members.length > 0) this.expense.payer = this.members[0];
             },
             methods: {
+                calcInput(b) { b === 'C' ? this.calcDisplay = '' : this.calcDisplay += b; },
+                calcResult() { try { this.calcDisplay = eval(this.calcDisplay.replace(/×/g, '*').replace(/÷/g, '/')).toString(); } catch { this.calcDisplay = 'Error'; } },
+                
+                assignToMember(name) {
+                    this.calcResult();
+                    if (this.calcDisplay === 'Error' || !this.calcDisplay) return;
+                    const val = parseFloat(this.calcDisplay);
+                    this.customSplits.push({ name, amount: val });
+                    this.expense.amount = this.customSplits.reduce((a, b) => a + b, 0);
+                    this.calcDisplay = ''; // 清零準備入下一個
+                },
+
+                closeCalc() {
+                    this.calcResult();
+                    if (!this.isAccumulate && this.calcDisplay !== 'Error') {
+                        this.expense.amount = parseFloat(this.calcDisplay || 0);
+                    }
+                    this.showCalc = false;
+                },
+
+                addMember() {
+                    if (this.newMemberName && !this.members.includes(this.newMemberName)) {
+                        this.members.push(this.newMemberName);
+                        if (this.members.length === 1) this.expense.payer = this.newMemberName;
+                        this.newMemberName = '';
+                    }
+                },
+
+                addRecord() {
+                    if (this.expense.amount <= 0 || !this.expense.payer) return alert("入數呀！");
+                    this.history.unshift({
+                        ...this.expense,
+                        splits: [...this.customSplits],
+                        timestamp: new Date().toLocaleTimeString(),
+                        rate: this.exchangeRate
+                    });
+                    this.expense.amount = 0; this.expense.desc = ''; this.customSplits = [];
+                    localStorage.setItem('jausou_v10_hist', JSON.stringify(this.history));
+                },
+
                 async fetchRate() {
-                    if (this.isCustomRate) return;
-                    this.loadingRate = true;
                     try {
                         const res = await fetch(`https://open.er-api.com/v6/latest/${this.foreignCurrency}`);
                         const data = await res.json();
-                        this.exchangeRate = data.rates[this.baseCurrency].toFixed(6);
+                        this.exchangeRate = data.rates[this.baseCurrency].toFixed(5);
                     } catch (e) { console.error("Rate API Error"); }
-                    finally { this.loadingRate = false; }
-                },
-                addMember() { 
-                    if(this.newMember && !this.members.includes(this.newMember)) {
-                        this.members.push(this.newMember);
-                        if (this.members.length === 1) this.expense.payer = this.newMember;
-                        this.expense.participants.push(this.newMember);
-                        this.newMember = '';
-                    } 
-                },
-                removeMember(i) { this.members.splice(i, 1); },
-                toggleParticipant(m) {
-                    let i = this.expense.participants.indexOf(m);
-                    i > -1 ? this.expense.participants.splice(i, 1) : this.expense.participants.push(m);
-                },
-                addRecord() {
-                    if (!this.expense.amount || !this.expense.payer || this.expense.participants.length === 0) return alert("資料不足！");
-                    const now = new Date();
-                    const timestamp = `${now.getMonth() + 1}/${now.getDate()} ${now.getHours()}:${String(now.getMinutes()).padStart(2, '0')}`;
-                    this.history.unshift({...this.expense, participants:[...this.expense.participants], rate:parseFloat(this.exchangeRate), timestamp});
-                    this.expense.amount = null; this.expense.desc = '';
-                },
-                clearAll() { if(confirm("清空紀錄？")) this.history = []; }
+                }
+            },
+            watch: {
+                members: { handler(v) { localStorage.setItem('jausou_v10_mems', JSON.stringify(v)); }, deep: true }
             }
         }).mount('#app')
     </script>
