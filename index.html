@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>找數 Jausou</title>
+    <title>找數</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@500;700;900&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { 
             font-family: 'Noto Sans TC', sans-serif; 
@@ -15,19 +15,17 @@
             overflow-x: hidden;
         }
         
-        /* 背景光暈 */
         .blob { position: fixed; width: 300px; height: 300px; background: linear-gradient(135deg, #6366f1 0%, #a855f7 100%); filter: blur(80px); border-radius: 50%; z-index: -1; opacity: 0.3; animation: move 20s infinite alternate; }
         .blob-2 { right: -50px; top: 20%; background: linear-gradient(135deg, #3b82f6 0%, #2dd4bf 100%); animation-duration: 25s; }
         @keyframes move { from { transform: translate(0, 0); } to { transform: translate(100px, 150px); } }
 
-        /* 藝術化標題 */
         .app-title { 
             font-weight: 900;
             background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%);
             -webkit-background-clip: text;
             -webkit-text-fill-color: transparent;
             filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4));
-            letter-spacing: 4px;
+            letter-spacing: 6px;
         }
 
         .glass-card {
@@ -45,7 +43,9 @@
         input:checked + .slider { background-color: #6366f1; }
         input:checked + .slider:before { transform: translateX(20px); }
 
-        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; font-weight: 300 !important; }
+        input::placeholder { font-weight: 300; opacity: 0.5; }
+        .amount-input { font-weight: 700 !important; }
     </style>
 </head>
 <body class="min-h-screen pb-10 text-white">
@@ -54,17 +54,16 @@
 
     <div id="app" class="max-w-md mx-auto px-5">
         
-        <header class="pt-16 pb-12 text-center">
-            <h1 class="app-title text-6xl mb-2">找數</h1>
-            <p class="text-indigo-400 text-[10px] font-bold tracking-[0.4em] uppercase opacity-60">Jausou Utility</p>
+        <header class="pt-20 pb-12 text-center">
+            <h1 class="app-title text-6xl">找數</h1>
         </header>
 
         <div class="space-y-6">
             <section class="glass-card p-6">
                 <div class="flex justify-between items-center mb-5">
-                    <h2 class="text-indigo-300 text-xs font-black tracking-widest uppercase">匯率設定</h2>
+                    <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase">匯率設定</h2>
                     <div class="flex items-center space-x-3">
-                        <span class="text-[10px] opacity-60">手動輸入</span>
+                        <span class="text-[9px] opacity-40">手動輸入</span>
                         <label class="switch">
                             <input type="checkbox" v-model="isCustomRate">
                             <span class="slider"></span>
@@ -72,33 +71,33 @@
                     </div>
                 </div>
                 <div class="grid grid-cols-2 gap-3 mb-4">
-                    <select v-model="foreignCurrency" @change="fetchRate" :disabled="isCustomRate" class="p-4 rounded-2xl text-sm font-bold outline-none">
+                    <select v-model="foreignCurrency" @change="fetchRate" :disabled="isCustomRate" class="p-4 rounded-2xl text-sm outline-none">
                         <option value="JPY">🇯🇵 日圓 JPY</option>
                         <option value="KRW">🇰🇷 韓圓 KRW</option>
                         <option value="TWD">🇹🇼 台幣 TWD</option>
                         <option value="THB">🇹🇭 泰銖 THB</option>
                     </select>
-                    <select v-model="baseCurrency" class="p-4 rounded-2xl text-sm font-bold outline-none">
+                    <select v-model="baseCurrency" class="p-4 rounded-2xl text-sm outline-none">
                         <option value="HKD">🇭🇰 港幣 HKD</option>
                     </select>
                 </div>
                 <div class="relative">
                     <input type="number" v-model="exchangeRate" :readonly="!isCustomRate" 
-                           class="w-full p-4 rounded-2xl font-mono text-2xl text-center outline-none transition-all"
-                           :class="isCustomRate ? 'ring-2 ring-indigo-500/40' : 'opacity-60'"
+                           class="w-full p-4 rounded-2xl font-mono text-2xl text-center outline-none transition-all amount-input"
+                           :class="isCustomRate ? 'ring-2 ring-indigo-500/40' : 'opacity-40'"
                            step="0.000001">
-                    <div v-if="loadingRate" class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-2xl text-xs text-indigo-300 font-bold">獲取最新匯率中...</div>
+                    <div v-if="loadingRate" class="absolute inset-0 bg-black/20 flex items-center justify-center rounded-2xl text-xs text-indigo-300 font-medium italic">獲取匯率中...</div>
                 </div>
             </section>
 
             <section class="glass-card p-6">
-                <h2 class="text-indigo-300 text-xs font-black tracking-widest uppercase mb-4">團友名單</h2>
+                <h2 class="text-indigo-300 text-[10px] font-black tracking-widest uppercase mb-4">團友名單</h2>
                 <div class="flex gap-2 mb-6">
                     <input type="text" v-model="newMember" @keyup.enter="addMember" placeholder="輸入姓名" class="flex-1 p-4 rounded-2xl outline-none">
-                    <button @click="addMember" class="bg-indigo-600 text-white px-6 rounded-2xl font-bold active:scale-95 transition-all">新增</button>
+                    <button @click="addMember" class="bg-indigo-600 text-white px-6 rounded-2xl font-bold active:scale-95 transition-all text-sm">新增</button>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <span v-for="(m, i) in members" class="bg-white/10 px-4 py-2 rounded-xl text-sm font-bold flex items-center border border-white/5">
+                    <span v-for="(m, i) in members" class="bg-white/10 px-4 py-2 rounded-xl text-sm font-medium flex items-center border border-white/5">
                         {{ m }}
                         <button @click="removeMember(i)" class="ml-2 text-white/30 hover:text-red-400">✕</button>
                     </span>
@@ -106,18 +105,18 @@
             </section>
 
             <section class="glass-card p-6 shadow-2xl">
-                <h2 class="text-center font-black text-xl mb-8">新增消費</h2>
+                <h2 class="text-center font-bold text-lg mb-8 tracking-tight text-white/80">新增消費</h2>
                 <div class="space-y-6">
                     <div class="relative">
-                        <span class="absolute left-5 top-5 text-indigo-400 font-black text-xl">{{foreignCurrency}}</span>
-                        <input type="number" v-model="expense.amount" placeholder="金額" class="w-full p-5 pl-20 rounded-[30px] text-4xl font-black outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all">
+                        <span class="absolute left-5 top-5 text-indigo-400 font-bold text-xl">{{foreignCurrency}}</span>
+                        <input type="number" v-model="expense.amount" placeholder="金額" class="w-full p-5 pl-20 rounded-[30px] text-4xl font-bold outline-none focus:ring-2 focus:ring-indigo-500/30 transition-all amount-input">
                     </div>
                     
                     <input type="text" v-model="expense.desc" placeholder="項目內容" class="w-full p-4 rounded-2xl outline-none">
                     
                     <div>
                         <label class="text-[10px] text-indigo-300 font-black uppercase ml-2 mb-2 block">付款人</label>
-                        <select v-model="expense.payer" class="w-full p-4 rounded-2xl font-bold outline-none">
+                        <select v-model="expense.payer" class="w-full p-4 rounded-2xl font-medium outline-none">
                             <option v-for="m in members" :value="m">{{m}}</option>
                         </select>
                     </div>
@@ -126,7 +125,7 @@
                         <label class="text-[10px] text-indigo-300 font-black uppercase text-center mb-3 block">分擔團友</label>
                         <div class="flex flex-wrap gap-2 justify-center">
                             <button v-for="m in members" @click="toggleParticipant(m)" 
-                                    :class="['px-5 py-2 rounded-2xl border-2 transition-all font-bold text-sm', expense.participants.includes(m) ? 'bg-white text-indigo-900 border-white shadow-lg' : 'bg-transparent text-white/40 border-white/10']">
+                                    :class="['px-5 py-2 rounded-2xl border transition-all font-medium text-xs', expense.participants.includes(m) ? 'bg-white text-indigo-900 border-white shadow-lg' : 'bg-transparent text-white/40 border-white/10']">
                                 {{m}}
                             </button>
                         </div>
@@ -140,35 +139,36 @@
 
             <section v-if="history.length > 0" class="glass-card p-6 shadow-2xl">
                 <div class="flex justify-between items-end mb-8">
-                    <h2 class="font-black text-3xl text-white">SETTLE</h2>
-                    <button @click="clearAll" class="text-[10px] font-bold text-red-400/60 uppercase">清空紀錄</button>
+                    <h2 class="font-black text-3xl text-white tracking-tighter">SETTLE</h2>
+                    <button @click="clearAll" class="text-[9px] font-bold text-red-400/40 uppercase hover:text-red-400">清空紀錄</button>
                 </div>
                 
                 <div class="space-y-4 mb-10">
                     <div v-for="s in settlement" class="p-6 bg-white/5 rounded-[30px] border border-white/5 flex justify-between items-center">
-                        <div class="flex items-center space-x-3 font-black text-lg">
+                        <div class="flex items-center space-x-3 font-bold text-lg">
                             <span>{{s.from}}</span>
-                            <span class="text-indigo-500">➜</span>
+                            <span class="text-indigo-500 opacity-50">➜</span>
                             <span>{{s.to}}</span>
                         </div>
                         <div class="text-right">
                             <span class="block text-[9px] font-black text-indigo-400 uppercase tracking-widest">應付</span>
-                            <span class="text-2xl font-black font-mono">${{s.amount.toFixed(2)}}</span>
+                            <span class="text-2xl font-bold font-mono">${{s.amount.toFixed(2)}}</span>
                         </div>
                     </div>
                 </div>
 
                 <div class="border-t border-white/10 pt-6">
-                    <h3 class="text-indigo-300 text-[10px] font-black uppercase tracking-widest mb-4">詳細消費歷史</h3>
+                    <h3 class="text-indigo-300 text-[10px] font-black uppercase tracking-widest mb-4">詳細歷史</h3>
                     <div class="space-y-3">
-                        <div v-for="h in history" class="bg-black/20 p-4 rounded-2xl text-xs leading-relaxed">
+                        <div v-for="h in history" class="bg-black/20 p-4 rounded-2xl text-xs leading-relaxed relative border border-white/5">
+                            <div class="text-[9px] text-white/20 font-mono mb-1">{{ h.timestamp }}</div>
                             <div class="flex justify-between font-bold mb-1">
-                                <span class="text-white">{{h.desc || '未命名項目'}}</span>
-                                <span class="text-indigo-400">{{h.amount}}{{foreignCurrency}}</span>
+                                <span class="text-white text-sm font-medium">{{ h.desc || '未命名項目' }}</span>
+                                <span class="text-indigo-400 text-sm font-mono">{{ h.amount }}{{ foreignCurrency }}</span>
                             </div>
-                            <div class="text-white/40">
-                                <div><span class="text-white/60">付款人：</span>{{h.payer}}</div>
-                                <div><span class="text-white/60">分擔：</span>{{h.participants.join(', ')}}</div>
+                            <div class="text-white/30 space-y-0.5 text-[11px]">
+                                <div><span class="text-white/50">付款人：</span>{{ h.payer }}</div>
+                                <div><span class="text-white/50">分擔：</span>{{ h.participants.join(', ') }}</div>
                             </div>
                         </div>
                     </div>
@@ -183,7 +183,7 @@
             data() {
                 return {
                     foreignCurrency: 'JPY', baseCurrency: 'HKD', exchangeRate: 0.05, 
-                    isCustomRate: false, // 默認自動抓取
+                    isCustomRate: false,
                     newMember: '', members: [],
                     expense: { amount: null, desc: '', payer: '', participants: [] },
                     history: [], loadingRate: false
@@ -191,13 +191,13 @@
             },
             mounted() {
                 this.fetchRate();
-                const savedHistory = localStorage.getItem('jausou_v5_hist'); if (savedHistory) this.history = JSON.parse(savedHistory);
-                const savedMembers = localStorage.getItem('jausou_v5_mems'); if (savedMembers) this.members = JSON.parse(savedMembers);
+                const savedHistory = localStorage.getItem('jausou_v7_hist'); if (savedHistory) this.history = JSON.parse(savedHistory);
+                const savedMembers = localStorage.getItem('jausou_v7_mems'); if (savedMembers) this.members = JSON.parse(savedMembers);
             },
             watch: {
                 isCustomRate(val) { if (!val) this.fetchRate(); },
-                members: { handler(val) { localStorage.setItem('jausou_v5_mems', JSON.stringify(val)); }, deep: true },
-                history: { handler(val) { localStorage.setItem('jausou_v5_hist', JSON.stringify(val)); }, deep: true }
+                members: { handler(val) { localStorage.setItem('jausou_v7_mems', JSON.stringify(val)); }, deep: true },
+                history: { handler(val) { localStorage.setItem('jausou_v7_hist', JSON.stringify(val)); }, deep: true }
             },
             computed: {
                 settlement() {
@@ -248,11 +248,18 @@
                     i > -1 ? this.expense.participants.splice(i, 1) : this.expense.participants.push(m);
                 },
                 addRecord() {
-                    if (!this.expense.amount || !this.expense.payer || this.expense.participants.length === 0) return alert("資料不足！");
-                    this.history.push({...this.expense, participants:[...this.expense.participants], rate:parseFloat(this.exchangeRate)});
+                    if (!this.expense.amount || !this.expense.payer || this.expense.participants.length === 0) return alert("請入齊金額、付款人同分擔團友！");
+                    const now = new Date();
+                    const timestamp = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')} ${String(now.getHours()).padStart(2, '0')}:${String(now.getMinutes()).padStart(2, '0')}`;
+                    this.history.unshift({
+                        ...this.expense, 
+                        participants:[...this.expense.participants], 
+                        rate:parseFloat(this.exchangeRate),
+                        timestamp: timestamp
+                    });
                     this.expense.amount = null; this.expense.desc = '';
                 },
-                clearAll() { if(confirm("確定清空？")) this.history = []; }
+                clearAll() { if(confirm("確定清空所有紀錄嗎？")) this.history = []; }
             }
         }).mount('#app')
     </script>
