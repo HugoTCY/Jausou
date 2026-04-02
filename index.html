@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>找數</title>
+    <title>找數 Jausou</title>
     
     <link rel="apple-touch-icon" href="https://raw.githubusercontent.com/HugoTCY/Jausou/main/Screenshot_20260402_064835_Google.png">
     <link rel="icon" href="https://raw.githubusercontent.com/HugoTCY/Jausou/main/Screenshot_20260402_064835_Google.png">
@@ -13,40 +13,49 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; }
-        .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); letter-spacing: 6px; }
-        .glass-card { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 30px; }
-        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; border-top: 1px solid rgba(255,255,255,0.1); border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); max-height: 85vh; overflow-y: auto; }
+        .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #a5b4fc 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 10px rgba(99, 102, 241, 0.4)); letter-spacing: 4px; }
+        .glass-card { background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(16px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
+        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #111827; border-top: 1px solid rgba(255,255,255,0.1); border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s ease; transform: translateY(100%); max-height: 90vh; overflow-y: auto; }
         .calc-panel.active { transform: translateY(0); }
-        .calc-btn { background: rgba(255,255,255,0.03); height: 55px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-size: 1.1rem; }
-        .calc-btn:active { background: rgba(255,255,255,0.15); }
-        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; outline: none; }
+        .calc-btn { background: rgba(255,255,255,0.03); height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 12px; }
+        input, select { background: rgba(255,255,255,0.05) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; }
+        .tab-btn { padding: 4px 12px; border-radius: 99px; font-size: 10px; font-weight: bold; border: 1px solid rgba(255,255,255,0.1); }
+        .tab-btn.active { background: #6366f1; border-color: #6366f1; }
     </style>
 </head>
 <body class="min-h-screen pb-20">
     <div id="app" class="max-w-md mx-auto px-5">
-        <header class="pt-16 pb-8 text-center"><h1 class="app-title text-6xl">找數</h1></header>
+        <header class="pt-12 pb-6 text-center"><h1 class="app-title text-5xl uppercase">Jausou</h1></header>
 
-        <section class="glass-card p-6 mb-6">
-            <h2 class="text-[10px] font-black opacity-30 mb-4 uppercase tracking-widest">Members</h2>
+        <section class="glass-card p-5 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-[10px] font-black opacity-30 uppercase tracking-widest">Members</h2>
+            </div>
             <div class="flex gap-2 mb-4">
                 <input type="text" v-model="newMemberName" @keyup.enter="addMember" placeholder="Name" class="flex-1 p-3 rounded-xl text-xs">
                 <button @click="addMember" class="bg-indigo-600 px-4 rounded-xl text-[10px] font-black uppercase">Add</button>
             </div>
             <div class="flex flex-wrap gap-2">
-                <span v-for="(m, i) in members" :key="i" class="text-[10px] bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg flex items-center">
-                    {{m}} <button @click="removeMember(i)" class="ml-2 opacity-20">×</button>
+                <span v-for="(m, i) in members" :key="i" class="text-[10px] bg-white/5 border border-white/10 px-3 py-1.5 rounded-lg">
+                    {{m}} <button @click="removeMember(i)" class="ml-1 opacity-30">×</button>
                 </span>
             </div>
         </section>
 
-        <section class="glass-card p-5 mb-6 flex justify-between items-center text-xs">
-            <div class="flex items-center gap-2">
-                <select v-model="foreignCurrency" @change="fetchRate" class="p-1 rounded-lg">
+        <section class="glass-card p-5 mb-6">
+            <div class="flex justify-between items-center mb-4">
+                <div class="flex gap-2">
+                    <button @click="isAutoRate = true" :class="['tab-btn', isAutoRate ? 'active' : '']">Auto</button>
+                    <button @click="isAutoRate = false" :class="['tab-btn', !isAutoRate ? 'active' : '']">Manual</button>
+                </div>
+                <select v-model="foreignCurrency" @change="fetchRate" class="text-[10px] p-1 rounded-lg">
                     <option value="JPY">🇯🇵 JPY</option><option value="KRW">🇰🇷 KRW</option><option value="TWD">🇹🇼 TWD</option>
                 </select>
-                <span class="opacity-20">➜ HKD</span>
             </div>
-            <input type="number" v-model="exchangeRate" step="0.0001" class="w-24 text-right bg-transparent border-none text-indigo-400 font-mono font-bold">
+            <div class="flex justify-between items-center">
+                <span class="text-[10px] opacity-30 uppercase font-black">Exchange Rate (➜ HKD)</span>
+                <input type="number" v-model="exchangeRate" :readonly="isAutoRate" step="0.00001" class="w-28 text-right bg-transparent border-none text-indigo-400 font-mono font-bold text-lg">
+            </div>
         </section>
 
         <section class="glass-card p-6 mb-6">
@@ -59,70 +68,89 @@
             
             <input type="number" v-model="expense.amount" readonly @click="showCalc = true" placeholder="0" class="w-full p-6 rounded-2xl text-5xl font-bold text-center bg-transparent border border-white/5 cursor-pointer mb-4">
 
-            <div v-if="isAccumulate && customSplits.length > 0" class="mb-4 space-y-2">
-                <div v-for="(s, idx) in customSplits" :key="idx" class="flex justify-between text-[11px] bg-white/5 p-2 rounded-lg">
+            <div v-if="isAccumulate && customSplits.length > 0" class="mb-4 space-y-1">
+                <div v-for="(s, idx) in customSplits" :key="idx" class="flex justify-between text-[10px] bg-white/5 p-2 rounded-lg">
                     <span class="opacity-40">{{s.name}}</span>
-                    <span class="font-mono text-indigo-300">{{s.amount}}</span>
+                    <span class="font-mono text-indigo-300">{{s.amount}} {{foreignCurrency}}</span>
                 </div>
             </div>
 
-            <input type="text" v-model="expense.desc" placeholder="備註" class="w-full p-4 rounded-xl text-sm mb-4">
+            <input type="text" v-model="expense.desc" placeholder="What's this for?" class="w-full p-4 rounded-xl text-sm mb-4">
             
             <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl mb-6">
-                <span class="text-[10px] opacity-30 font-black uppercase tracking-widest">Payer</span>
+                <span class="text-[10px] opacity-30 font-black uppercase">Payer</span>
                 <select v-model="expense.payer" class="bg-transparent font-bold">
                     <option v-for="m in members" :value="m">{{m}}</option>
                 </select>
             </div>
 
-            <button @click="addRecord" class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">Confirm</button>
+            <button @click="addRecord" class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase shadow-lg active:scale-95 transition-all">Save Bill</button>
         </section>
 
         <section v-if="history.length > 0" class="glass-card p-6 mb-6">
-            <h2 class="text-[10px] font-black opacity-30 mb-6 uppercase tracking-widest">Settlement</h2>
+            <div class="flex justify-between items-center mb-6">
+                <h2 class="text-[10px] font-black opacity-30 uppercase tracking-widest">Settlement</h2>
+                <div class="flex gap-1">
+                    <button @click="settleCurrency = 'HKD'" :class="['tab-btn', settleCurrency === 'HKD' ? 'active' : '']">HKD</button>
+                    <button @click="settleCurrency = foreignCurrency" :class="['tab-btn', settleCurrency !== 'HKD' ? 'active' : '']">{{foreignCurrency}}</button>
+                </div>
+            </div>
             <div class="space-y-3">
-                <div v-for="s in settlement" :key="s.from+s.to" class="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
+                <div v-for="s in settlement" class="p-4 bg-white/5 rounded-2xl flex justify-between items-center border border-white/5">
                     <div class="text-sm font-bold">{{s.from}} ➜ {{s.to}}</div>
-                    <div class="font-mono font-bold text-indigo-400">${{s.amount.toFixed(2)}}</div>
+                    <div class="font-mono font-bold text-indigo-400">
+                        {{ settleCurrency === 'HKD' ? '$' : '' }}{{ s.amount.toFixed(settleCurrency === 'HKD' ? 2 : 0) }}
+                    </div>
                 </div>
             </div>
         </section>
 
         <section v-if="history.length > 0" class="glass-card p-6 mb-10">
-            <h2 class="text-[10px] font-black opacity-30 mb-4 uppercase tracking-widest">History</h2>
-            <div class="space-y-4">
-                <div v-for="(h, i) in history" :key="i" class="border-b border-white/5 pb-3 flex justify-between items-center">
-                    <div>
-                        <span class="text-xs font-bold block">{{h.desc || 'Expense'}}</span>
-                        <span class="text-[9px] opacity-30">{{h.date}} | {{h.payer}} paid</span>
+            <div class="flex justify-between items-center mb-4">
+                <h2 class="text-[10px] font-black opacity-30 uppercase tracking-widest">History</h2>
+                <select v-model="historyFilter" class="text-[9px] p-1 rounded bg-transparent border border-white/10 opacity-60">
+                    <option value="All">All Payers</option>
+                    <option v-for="m in members" :value="m">{{m}}</option>
+                </select>
+            </div>
+            <div class="space-y-6">
+                <div v-for="(h, i) in filteredHistory" :key="i" class="border-b border-white/5 pb-4">
+                    <div class="flex justify-between items-start mb-2">
+                        <div>
+                            <span class="text-xs font-bold block">{{h.desc || 'Expense'}}</span>
+                            <span class="text-[9px] opacity-30">{{h.date}} | {{h.payer}} paid</span>
+                        </div>
+                        <span class="text-xs font-mono text-indigo-300">{{h.amount}} {{h.currency}}</span>
                     </div>
-                    <div class="text-right">
-                        <span class="text-xs font-mono text-indigo-300 block">{{h.amount}} {{foreignCurrency}}</span>
-                        <button @click="deleteHistory(i)" class="text-[9px] text-red-500 opacity-30">Delete</button>
+                    <div class="bg-white/5 p-2 rounded-lg">
+                        <p class="text-[8px] opacity-20 uppercase font-black mb-1 tracking-tighter">Split Details</p>
+                        <div v-for="s in h.splits" class="flex justify-between text-[10px] mb-0.5">
+                            <span class="opacity-40">{{s.name}}</span>
+                            <span class="opacity-60">{{s.amount.toFixed(0)}} {{h.currency}}</span>
+                        </div>
                     </div>
+                    <button @click="deleteHistory(h.originalIndex)" class="text-[9px] text-red-500 opacity-20 mt-2">Delete</button>
                 </div>
             </div>
         </section>
 
         <div :class="['calc-panel p-6 shadow-2xl', showCalc ? 'active' : '']">
             <div class="flex justify-between items-center mb-6">
-                <div class="text-3xl font-mono text-indigo-400">{{ calcDisplay || '0' }}</div>
+                <div class="text-4xl font-mono text-indigo-400">{{ calcDisplay || '0' }}</div>
                 <button @click="showCalc = false" class="text-[10px] border border-white/20 px-3 py-1 rounded-full opacity-30">DONE</button>
             </div>
-
-            <div v-if="isAccumulate" class="mb-6">
-                <div class="grid grid-cols-3 gap-2">
-                    <button v-for="m in members" :key="m" @click="assignToMember(m)" class="p-3 bg-white/5 rounded-xl text-xs active:bg-indigo-600 transition-colors">{{m}}</button>
-                </div>
+            <div v-if="isAccumulate" class="mb-6 grid grid-cols-3 gap-2">
+                <button v-for="m in members" :key="m" @click="assignToMember(m)" class="p-3 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-xs active:bg-indigo-600">
+                    {{m}}
+                </button>
             </div>
-
             <div class="grid grid-cols-4 gap-2">
-                <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+']" @click="calcInput(b)" class="calc-btn">{{b}}</button>
-                <button @click="calcResult" class="calc-btn col-span-2 text-indigo-400">=</button>
-                <button @click="closeCalc" class="calc-btn ok col-span-2 bg-indigo-600 font-bold">OK</button>
+                <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+']" @click="calcInput(b)" class="calc-btn text-lg">{{b}}</button>
+                <button @click="calcResult" class="calc-btn col-span-2 text-indigo-400 text-2xl">=</button>
+                <button @click="closeCalc" class="calc-btn ok col-span-2 bg-indigo-600 font-black">OK</button>
             </div>
         </div>
-        <div v-if="showCalc" @click="showCalc = false" class="fixed inset-0 bg-black/70 z-40 backdrop-blur-sm"></div>
+        <div v-if="showCalc" @click="showCalc = false" class="fixed inset-0 bg-black/80 z-[90] backdrop-blur-sm"></div>
     </div>
 
     <script>
@@ -130,101 +158,74 @@
         createApp({
             data() {
                 return {
-                    foreignCurrency: 'JPY', exchangeRate: 0.052,
+                    foreignCurrency: 'JPY', exchangeRate: 0.052, isAutoRate: true,
                     members: [], newMemberName: '', history: [],
-                    expense: { amount: 0, desc: '', payer: '', participants: [] },
-                    showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: []
+                    expense: { amount: 0, desc: '', payer: '' },
+                    showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: [],
+                    settleCurrency: 'HKD', historyFilter: 'All'
                 }
             },
             mounted() {
-                // 用 v21 避開舊格式 Error
-                const h = localStorage.getItem('jausou_v21_hist'); if (h) this.history = JSON.parse(h);
-                const m = localStorage.getItem('jausou_v21_mems'); if (m) this.members = JSON.parse(m);
+                const h = localStorage.getItem('jausou_v22_hist'); if (h) this.history = JSON.parse(h);
+                const m = localStorage.getItem('jausou_v22_mems'); if (m) this.members = JSON.parse(m);
                 if (this.members.length > 0) this.expense.payer = this.members[0];
                 this.fetchRate();
             },
             methods: {
-                toggleMode() {
-                    this.isAccumulate = !this.isAccumulate;
-                    this.customSplits = [];
-                    this.expense.amount = 0;
-                },
+                toggleMode() { this.isAccumulate = !this.isAccumulate; this.customSplits = []; this.expense.amount = 0; },
                 calcInput(b) { b === 'C' ? this.calcDisplay = '' : this.calcDisplay += b; },
-                calcResult() {
-                    try {
-                        if(!this.calcDisplay) return;
-                        let res = eval(this.calcDisplay.replace(/×/g, '*').replace(/÷/g, '/'));
-                        this.calcDisplay = isFinite(res) ? parseFloat(res.toFixed(2)).toString() : '0';
-                    } catch { this.calcDisplay = ''; }
+                calcResult() { 
+                    try { if(!this.calcDisplay) return; let res = eval(this.calcDisplay.replace(/×/g, '*').replace(/÷/g, '/')); this.calcDisplay = isFinite(res) ? parseFloat(res.toFixed(2)).toString() : '0'; } 
+                    catch { this.calcDisplay = ''; } 
                 },
                 assignToMember(name) {
-                    this.calcResult();
-                    let val = parseFloat(this.calcDisplay);
-                    if (isNaN(val) || val === 0) return;
+                    this.calcResult(); let val = parseFloat(this.calcDisplay); if (isNaN(val) || val === 0) return;
                     this.customSplits.push({ name, amount: val });
                     this.expense.amount = parseFloat(this.customSplits.reduce((acc, cur) => acc + cur.amount, 0).toFixed(2));
                     this.calcDisplay = '';
                 },
-                closeCalc() {
-                    this.calcResult();
-                    if (!this.isAccumulate) this.expense.amount = parseFloat(this.calcDisplay || 0);
-                    this.showCalc = false;
-                },
-                addMember() {
-                    if(this.newMemberName && !this.members.includes(this.newMemberName)) {
-                        this.members.push(this.newMemberName);
-                        if(!this.expense.payer) this.expense.payer = this.newMemberName;
-                        this.newMemberName = '';
-                        this.save();
-                    }
-                },
+                closeCalc() { this.calcResult(); if (!this.isAccumulate) this.expense.amount = parseFloat(this.calcDisplay || 0); this.showCalc = false; },
+                addMember() { if(this.newMemberName && !this.members.includes(this.newMemberName)) { this.members.push(this.newMemberName); this.newMemberName = ''; this.save(); } },
                 removeMember(i) { this.members.splice(i, 1); this.save(); },
                 addRecord() {
-                    if (this.expense.amount <= 0 || !this.expense.payer) return;
+                    if (this.expense.amount <= 0 || !this.expense.payer || this.members.length === 0) return alert("Missing Info");
                     const now = new Date();
                     const record = {
-                        desc: this.expense.desc,
-                        amount: this.expense.amount,
-                        payer: this.expense.payer,
-                        rate: parseFloat(this.exchangeRate),
+                        desc: this.expense.desc, amount: this.expense.amount, payer: this.expense.payer, 
+                        rate: parseFloat(this.exchangeRate), currency: this.foreignCurrency,
                         date: now.toLocaleDateString('zh-HK', {month:'2-digit', day:'2-digit'}) + ' ' + now.toLocaleTimeString('zh-HK', {hour12:false, hour:'2-digit', minute:'2-digit'}),
                         splits: this.isAccumulate ? [...this.customSplits] : this.members.map(m => ({ name: m, amount: this.expense.amount / this.members.length }))
                     };
                     this.history.unshift(record);
-                    this.expense.amount = 0; this.expense.desc = ''; this.customSplits = [];
-                    this.save();
+                    this.expense.amount = 0; this.expense.desc = ''; this.customSplits = []; this.save();
                 },
                 deleteHistory(i) { this.history.splice(i, 1); this.save(); },
-                save() {
-                    localStorage.setItem('jausou_v21_hist', JSON.stringify(this.history));
-                    localStorage.setItem('jausou_v21_mems', JSON.stringify(this.members));
-                },
+                save() { localStorage.setItem('jausou_v22_hist', JSON.stringify(this.history)); localStorage.setItem('jausou_v22_mems', JSON.stringify(this.members)); },
                 async fetchRate() {
-                    try {
-                        const res = await fetch(`https://open.er-api.com/v6/latest/${this.foreignCurrency}`);
-                        const data = await res.json();
-                        this.exchangeRate = data.rates['HKD'].toFixed(5);
-                    } catch (e) { console.log("Rate Error"); }
+                    if (!this.isAutoRate) return;
+                    try { const res = await fetch(`https://open.er-api.com/v6/latest/${this.foreignCurrency}`); const data = await res.json(); this.exchangeRate = data.rates['HKD'].toFixed(5); } 
+                    catch (e) { console.log("Rate Error"); }
                 }
             },
             computed: {
+                filteredHistory() {
+                    let list = this.history.map((h, idx) => ({ ...h, originalIndex: idx }));
+                    if (this.historyFilter !== 'All') list = list.filter(h => h.payer === this.historyFilter);
+                    return list;
+                },
                 settlement() {
                     let net = {}; this.members.forEach(m => net[m] = 0);
                     this.history.forEach(h => {
-                        net[h.payer] += h.amount * h.rate;
-                        h.splits.forEach(s => { if(net.hasOwnProperty(s.name)) net[s.name] -= s.amount * h.rate; });
+                        let currentRate = this.settleCurrency === 'HKD' ? h.rate : (h.rate / this.exchangeRate);
+                        net[h.payer] += h.amount * currentRate;
+                        h.splits.forEach(s => { if(net.hasOwnProperty(s.name)) net[s.name] -= s.amount * currentRate; });
                     });
                     let d = [], c = [], res = [];
-                    for (let n in net) {
-                        if (net[n] < -0.01) d.push({n, a: -net[n]});
-                        else if (net[n] > 0.01) c.push({n, a: net[n]});
-                    }
+                    for (let n in net) { if (net[n] < -0.01) d.push({n, a: -net[n]}); else if (net[n] > 0.01) c.push({n, a: net[n]}); }
                     let di = 0, ci = 0;
                     while (di < d.length && ci < c.length) {
-                        let p = Math.min(d[di].a, c[ci].a);
-                        res.push({from: d[di].n, to: c[ci].n, amount: p});
-                        d[di].a -= p; c[ci].a -= p;
-                        if (d[di].a < 0.01) di++; if (c[ci].a < 0.01) ci++;
+                        let p = Math.min(d[di].a, c[ci].a); res.push({from: d[di].n, to: c[ci].n, amount: p});
+                        d[di].a -= p; c[ci].a -= p; if (d[di].a < 0.01) di++; if (c[ci].a < 0.01) ci++;
                     }
                     return res;
                 }
