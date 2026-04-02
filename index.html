@@ -3,118 +3,174 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="theme-color" content="#1e293b">
-    <title>找數 v26.1</title>
+    <meta name="theme-color" content="#0f172a">
+    <title>找數 v26.3 - 完整修復版</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #1e293b; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 8px rgba(99,102,241,0.5)); letter-spacing: 4px; }
-        .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; }
-        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 2px solid #6366f1; border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); max-height: 95vh; }
-        .calc-panel.active { transform: translateY(0); }
-        input { background: rgba(255,255,255,0.1) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; outline: none; }
-        .bottom-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
+        .glass-card { background: rgba(255, 255, 255, 0.05); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.1); border-radius: 24px; }
         
-        /* 幣種按鈕樣式 */
-        .curr-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 2px; }
-        .curr-btn.active { background: #6366f1; border-color: #818cf8; font-weight: 900; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
-
-        /* ✨ 虛擬選單樣式 (用於付款人) ✨ */
-        .custom-dropdown { position: relative; display: inline-block; }
-        .dropdown-trigger { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        /* 虛擬選單：徹底取代原生大白框 */
+        .custom-dropdown { position: relative; }
+        .dropdown-trigger { background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 8px 16px; display: flex; align-items: center; gap: 8px; cursor: pointer; min-width: 100px; justify-content: space-between; }
         .dropdown-menu { 
-            position: absolute; right: 0; top: calc(100% + 8px); 
-            background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(20px); 
+            position: absolute; right: 0; bottom: calc(100% + 10px); 
+            background: rgba(30, 41, 59, 0.98); backdrop-filter: blur(25px); 
             border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; 
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 200; min-width: 120px;
-            overflow: hidden; animation: fadeIn 0.2s ease-out;
+            box-shadow: 0 10px 40px rgba(0,0,0,0.8); z-index: 500; min-width: 140px;
+            overflow: hidden; animation: fadeInUp 0.2s ease-out;
         }
-        .dropdown-item { padding: 12px 16px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; cursor: pointer; color: white; }
-        /* 替代 Checkmark 的無圖標高亮 */
-        .dropdown-item.active { background: rgba(255, 255, 255, 0.1); font-weight: 900; color: white; }
-        .dropdown-item.inactive { opacity: 0.4; }
+        @keyframes fadeInUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .dropdown-item { padding: 14px 18px; cursor: pointer; transition: 0.2s; border-bottom: 1px solid rgba(255,255,255,0.05); }
+        .dropdown-item.active { background: rgba(99, 102, 241, 0.3); color: #818cf8; font-weight: 900; }
         
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
+        /* 計算機面板 */
+        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 2px solid #6366f1; border-radius: 32px 32px 0 0; z-index: 1000; transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1); transform: translateY(100%); padding-bottom: env(safe-area-inset-bottom); }
+        .calc-panel.active { transform: translateY(0); }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px; }
+        .calc-btn { background: rgba(255,255,255,0.05); height: 65px; border-radius: 18px; display: flex; align-items: center; justify-content: center; font-size: 1.5rem; font-weight: bold; border: 1px solid rgba(255,255,255,0.05); }
+        .calc-btn:active { background: rgba(255,255,255,0.15); transform: scale(0.95); }
+        .calc-op { color: #818cf8; }
+        
+        .nav-btn.active { color: #818cf8; filter: drop-shadow(0 0 5px rgba(129,140,248,0.5)); opacity: 1; }
+        input { background: transparent !important; outline: none !important; color: white !important; }
     </style>
 </head>
-<body class="min-h-screen">
-    <div id="app" @click="closeDropdowns" class="max-w-md mx-auto px-5 pb-32 pt-10 relative">
-        <header class="pb-6 text-center"><h1 class="app-title text-5xl">找數</h1></header>
+<body>
+    <div id="app" @click="closeAll" class="max-w-md mx-auto px-5 pb-32 pt-10">
+        <header class="pb-8 text-center"><h1 class="app-title text-5xl">找數</h1></header>
 
         <div v-show="currentTab === 'record'">
             <section class="glass-card p-5 mb-6">
-                <p class="text-[10px] font-black opacity-40 uppercase mb-3 tracking-widest">團友名單</p>
-                <div class="flex items-center gap-2 mb-4 bg-white/5 border border-white/10 rounded-xl p-1 shadow-inner">
-                    <input type="text" v-model="newMemberName" @keyup.enter="addMember" placeholder="輸入名字" 
-                        class="flex-1 p-3 rounded-xl text-xs font-bold !bg-transparent !border-none">
-                    <button @click="addMember" class="bg-indigo-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase text-white shadow-md active:scale-95 transition-all">新增</button>
+                <div class="flex items-center gap-2 mb-4 bg-white/5 border border-white/10 rounded-xl p-1">
+                    <input type="text" v-model="newMember" @keyup.enter="addMember" placeholder="新增朋友名字..." class="flex-1 p-3 text-xs font-bold">
+                    <button @click="addMember" class="bg-indigo-600 px-5 py-2.5 rounded-lg text-[10px] font-black uppercase">新增</button>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <span v-for="(m, i) in members" :key="i" class="text-[10px] bg-white/10 px-3 py-1.5 rounded-lg flex items-center">
-                        {{m}} <button @click="removeMember(i)" class="ml-2 opacity-40 text-lg">×</button>
+                    <span v-for="(m, i) in members" :key="i" class="text-[10px] bg-white/10 px-3 py-1.5 rounded-lg border border-white/5 flex items-center">
+                        {{m}} <button @click="removeMember(i)" class="ml-2 opacity-40">×</button>
                     </span>
-                    <p v-if="members.length === 0" class="text-xs opacity-30 italic py-2">請新增團友...</p>
                 </div>
             </section>
 
             <section class="glass-card p-6">
-                <div @click="showCalc = true" class="w-full p-6 rounded-2xl text-5xl font-bold text-center bg-white/5 border border-white/10 cursor-pointer min-h-[100px] flex items-center justify-center mb-5">
-                    {{ expense.amount || 0 }}
+                <div @click="showCalc = true" class="w-full p-8 rounded-2xl text-6xl font-black text-center bg-white/5 border border-white/10 mb-6 shadow-inner cursor-pointer">
+                    {{ displayAmount || 0 }}
                 </div>
 
-                <div class="grid grid-cols-4 gap-2 mb-8">
-                    <button v-for="curr in currencyList" :key="curr.code" @click="switchCurrency(curr.code)"
-                        :class="['curr-btn py-2.5 rounded-xl border transition-all', activeCurrency === curr.code ? 'curr-btn active' : 'bg-white/5 border-white/10 opacity-50']">
-                        <span class="text-lg">{{ curr.flag }}</span>
-                        <span class="text-[10px]">{{ curr.code }}</span>
+                <div class="grid grid-cols-4 gap-2 mb-6">
+                    <button v-for="c in currencyList" :key="c.code" @click="activeCurrency = c.code"
+                        :class="['py-3 rounded-xl border transition-all flex flex-col items-center gap-1', activeCurrency === c.code ? 'bg-indigo-600 border-indigo-400 font-black' : 'bg-white/5 border-white/10 opacity-40']">
+                        <span class="text-xl">{{ c.flag }}</span>
+                        <span class="text-[10px]">{{ c.code }}</span>
                     </button>
                 </div>
 
-                <p class="text-[10px] font-black opacity-40 uppercase mb-2 ml-1">項目備註 (e.g. 燒肉 / 藥妝)</p>
-                <input type="text" v-model="expense.desc" placeholder="輸入項目..." class="w-full p-4 rounded-xl text-sm mb-4 font-bold">
-                
-                <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl mb-6 border border-white/5">
-                    <span class="text-[10px] opacity-40 font-black uppercase tracking-widest">付款人</span>
-                    <div class="custom-dropdown" @click.stop>
-                        <div @click="toggleDropdown('payer')" class="dropdown-trigger">
-                            <span class="text-sm font-black text-white">{{ expense.payer || '選擇付款人' }}</span>
-                            <span class="text-[10px] opacity-40">▼</span>
-                        </div>
-                        <div v-if="openDropdown === 'payer'" class="dropdown-menu">
-                            <div v-for="m in members" :key="m" @click="selectPayer(m)" 
-                                 :class="['dropdown-item text-sm', expense.payer === m ? 'active' : 'inactive']">
-                                {{ m }}
+                <div class="space-y-4">
+                    <div class="bg-white/5 p-4 rounded-xl border border-white/10">
+                        <p class="text-[9px] opacity-40 font-black uppercase mb-1">項目備註</p>
+                        <input type="text" v-model="expense.desc" placeholder="例如：築地壽司" class="w-full font-bold text-sm">
+                    </div>
+
+                    <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10">
+                        <span class="text-[9px] opacity-40 font-black uppercase">付款人</span>
+                        <div class="custom-dropdown" @click.stop>
+                            <div @click="toggleDropdown('payer')" class="dropdown-trigger">
+                                <span class="text-sm font-black">{{ expense.payer || '選人' }}</span>
+                                <span class="text-[10px] opacity-30">▼</span>
+                            </div>
+                            <div v-if="openDropdown === 'payer'" class="dropdown-menu">
+                                <div v-for="m in members" :key="m" @click="selectPayer(m)" :class="['dropdown-item text-xs', expense.payer === m ? 'active' : '']">{{m}}</div>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <button @click="addRecord" class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">確認儲存</button>
+                <button @click="saveRecord" class="w-full bg-indigo-600 mt-8 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">確認紀錄</button>
             </section>
         </div>
 
         <div v-show="currentTab === 'history'">
             <section class="glass-card p-6 min-h-[400px]">
-                <h2 class="text-sm font-black text-indigo-300 mr-2 mb-4">歷史紀錄</h2>
-                <div v-for="h in history" :key="h.id" class="bg-white/5 p-4 rounded-2xl mb-3 border border-white/5">
-                    <div class="flex justify-between">
-                        <span class="font-bold text-sm">{{h.desc}}</span>
-                        <span class="font-mono text-xs">{{getFlagByCode(h.currency)}} {{h.amount}}</span>
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-xs font-black text-indigo-300 uppercase">歷史明細</h2>
+                    <button @click="clearHistory" class="text-[9px] opacity-30 uppercase underline">清除全部</button>
+                </div>
+                <div class="space-y-3">
+                    <div v-for="(h, i) in history" :key="i" class="bg-white/5 p-4 rounded-xl flex justify-between items-center border border-white/5">
+                        <div class="flex items-center gap-3">
+                            <div class="bg-indigo-500/20 w-8 h-8 rounded-full flex items-center justify-center text-xs">{{ getFlag(h.currency) }}</div>
+                            <div>
+                                <div class="text-xs font-bold">{{ h.desc || '無備註' }}</div>
+                                <div class="text-[9px] opacity-40">{{ h.payer }} 墊付</div>
+                            </div>
+                        </div>
+                        <div class="text-right">
+                            <div class="font-mono font-black text-sm">{{ h.amount }}</div>
+                            <button @click="deleteRecord(i)" class="text-[10px] text-red-400 opacity-50">刪除</button>
+                        </div>
                     </div>
+                    <div v-if="history.length === 0" class="text-center py-20 opacity-20 text-xs italic">仲未有紀錄喎...</div>
                 </div>
             </section>
         </div>
 
-        <div :class="['calc-panel p-6 shadow-2xl', showCalc ? 'active' : '']">
-            <button @click="closeCalc" class="w-full bg-indigo-600 py-4 rounded-xl font-bold">OK</button>
+        <div v-show="currentTab === 'settle'">
+            <section class="glass-card p-6">
+                <div class="flex justify-between items-center mb-8">
+                    <h2 class="text-xs font-black text-indigo-300 uppercase">結算建議</h2>
+                    <div class="custom-dropdown" @click.stop>
+                        <div @click="toggleDropdown('settle')" class="dropdown-trigger border-indigo-500/40">
+                            <span class="text-xs font-black">{{ settleCurrency }}</span>
+                            <span class="text-[10px] opacity-30">▼</span>
+                        </div>
+                        <div v-if="openDropdown === 'settle'" class="dropdown-menu">
+                            <div v-for="c in currencyList" :key="c.code" @click="selectSettleCurr(c.code)" :class="['dropdown-item text-xs', settleCurrency === c.code ? 'active' : '']">{{c.flag}} {{c.code}}</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="space-y-4">
+                    <div v-for="s in transfers" class="bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/10 flex justify-between items-center">
+                        <div class="text-xs">
+                            <span class="font-black text-indigo-200">{{ s.from }}</span> 
+                            <span class="opacity-40 px-2">俾</span> 
+                            <span class="font-black text-white">{{ s.to }}</span>
+                        </div>
+                        <div class="text-right font-mono font-black text-indigo-400">
+                            {{ getFlag(settleCurrency) }} {{ s.amount.toFixed(1) }}
+                        </div>
+                    </div>
+                    <div v-if="transfers.length === 0" class="text-center py-20 opacity-20 text-xs italic">大家都清晒數喇！</div>
+                </div>
+            </section>
         </div>
 
-        <nav class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around pb-8 pt-3 z-50">
-            <button @click="currentTab = 'record'" :class="['flex flex-col items-center w-20 transition-all', currentTab === 'record' ? 'text-indigo-400' : 'opacity-40']"><span class="text-2xl mb-1">📝</span><span class="text-[10px] font-black">記帳</span></button>
-            <button @click="currentTab = 'history'" :class="['flex flex-col items-center w-20 transition-all', currentTab === 'history' ? 'text-indigo-400' : 'opacity-40']"><span class="text-2xl mb-1">🧾</span><span class="text-[10px] font-black">明細</span></button>
+        <div :class="['calc-panel', showCalc ? 'active' : '']">
+            <div class="p-6 text-right text-4xl font-mono font-black border-b border-white/5">{{ calcDisplay || '0' }}</div>
+            <div class="calc-grid">
+                <button v-for="b in ['AC', '/', '*', 'DEL', '7', '8', '9', '-', '4', '5', '6', '+', '1', '2', '3', '0', '.', 'OK']" 
+                    @click="handleCalc(b)" 
+                    :class="['calc-btn', b === 'OK' ? 'col-span-2 bg-indigo-600' : '', ['/','*','-','+','AC','DEL'].includes(b) ? 'calc-op' : '']">
+                    {{ b }}
+                </button>
+            </div>
+        </div>
+
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around pb-8 pt-4 z-50">
+            <button @click="currentTab = 'record'" :class="['nav-btn flex flex-col items-center opacity-40', currentTab === 'record' ? 'active' : '']">
+                <span class="text-2xl mb-1">📝</span><span class="text-[9px] font-black uppercase">記帳</span>
+            </button>
+            <button @click="currentTab = 'history'" :class="['nav-btn flex flex-col items-center opacity-40', currentTab === 'history' ? 'active' : '']">
+                <span class="text-2xl mb-1">🧾</span><span class="text-[9px] font-black uppercase">明細</span>
+            </button>
+            <button @click="currentTab = 'settle'" :class="['nav-btn flex flex-col items-center opacity-40', currentTab === 'settle' ? 'active' : '']">
+                <span class="text-2xl mb-1">💰</span><span class="text-[9px] font-black uppercase">結算</span>
+            </button>
         </nav>
     </div>
 
@@ -123,28 +179,70 @@
         createApp({
             data() {
                 return {
-                    currentTab: 'record', activeCurrency: 'JPY',
-                    openDropdown: null, // 控制虛擬選單開啟
-                    currencyList: [{ code: 'HKD', flag: '🇭🇰' }, { code: 'JPY', flag: '🇯🇵' }, { code: 'KRW', flag: '🇰🇷' }, { code: 'TWD', flag: '🇹🇼' }],
+                    currentTab: 'record', activeCurrency: 'JPY', settleCurrency: 'HKD',
+                    showCalc: false, calcDisplay: '', displayAmount: 0,
+                    openDropdown: null, newMember: '',
                     members: [], history: [], expense: { amount: 0, desc: '', payer: '' },
-                    newMemberName: '', showCalc: false
+                    currencyList: [{ code: 'HKD', flag: '🇭🇰' }, { code: 'JPY', flag: '🇯🇵' }, { code: 'KRW', flag: '🇰🇷' }, { code: 'TWD', flag: '🇹🇼' }],
+                    rates: { HKD: 1, JPY: 0.051, KRW: 0.0056, TWD: 0.24 } // 範例匯率
+                }
+            },
+            computed: {
+                transfers() {
+                    if (this.members.length < 2 || this.history.length === 0) return [];
+                    let bal = {}; this.members.forEach(m => bal[m] = 0);
+                    this.history.forEach(h => {
+                        let val = (h.amount * this.rates[h.currency]) / this.rates[this.settleCurrency];
+                        bal[h.payer] += val;
+                        let per = val / this.members.length;
+                        this.members.forEach(m => bal[m] -= per);
+                    });
+                    let givers = [], takers = [], res = [];
+                    for (let m in bal) {
+                        if (bal[m] > 0.5) takers.push({ name: m, amt: bal[m] });
+                        else if (bal[m] < -0.5) givers.push({ name: m, amt: Math.abs(bal[m]) });
+                    }
+                    givers.forEach(g => {
+                        takers.forEach(t => {
+                            if (g.amt <= 0 || t.amt <= 0) return;
+                            let move = Math.min(g.amt, t.amt);
+                            res.push({ from: g.name, to: t.name, amount: move });
+                            g.amt -= move; t.amt -= move;
+                        });
+                    });
+                    return res;
                 }
             },
             mounted() {
-                const m = localStorage.getItem('jausou_v26_mems'); if (m) this.members = JSON.parse(m);
-                if (this.members.length > 0) this.expense.payer = this.members[0];
+                const h = localStorage.getItem('js_hist'); if(h) this.history = JSON.parse(h);
+                const m = localStorage.getItem('js_mems'); if(m) this.members = JSON.parse(m);
+                if(this.members.length > 0) this.expense.payer = this.members[0];
             },
             methods: {
-                toggleDropdown(name) { this.openDropdown = this.openDropdown === name ? null : name; },
-                closeDropdowns() { this.openDropdown = null; },
-                selectPayer(name) { this.expense.payer = name; this.openDropdown = null; },
-                getFlagByCode(code) { const c = this.currencyList.find(i => i.code === code); return c ? c.flag : '$'; },
-                switchCurrency(curr) { this.activeCurrency = curr; },
-                addRecord() { if(!this.expense.amount) return; /* 儲存邏輯省略 */ this.expense.amount = 0; this.expense.desc=''; },
-                addMember() { if(this.newMemberName && !this.members.includes(this.newMemberName)) { this.members.push(this.newMemberName); this.newMemberName = ''; this.save(); } },
+                handleCalc(b) {
+                    if (b === 'AC') this.calcDisplay = '';
+                    else if (b === 'DEL') this.calcDisplay = this.calcDisplay.slice(0, -1);
+                    else if (b === 'OK') { 
+                        try { this.displayAmount = eval(this.calcDisplay) || 0; } catch { this.displayAmount = 0; }
+                        this.expense.amount = this.displayAmount; this.showCalc = false; 
+                    } else this.calcDisplay += b;
+                },
+                addMember() { if(this.newMember && !this.members.includes(this.newMember)) { this.members.push(this.newMember); this.newMember = ''; this.save(); if(!this.expense.payer) this.expense.payer = this.members[0]; } },
                 removeMember(i) { this.members.splice(i, 1); this.save(); },
-                save() { localStorage.setItem('jausou_v26_mems', JSON.stringify(this.members)); },
-                closeCalc() { this.showCalc = false; }
+                saveRecord() {
+                    if (this.expense.amount <= 0 || !this.expense.payer) return alert('入咗錢同揀咗邊個俾先！');
+                    this.history.unshift({ ...this.expense, currency: this.activeCurrency, date: new Date().getTime() });
+                    this.expense.amount = 0; this.displayAmount = 0; this.calcDisplay = ''; this.expense.desc = '';
+                    this.save(); this.currentTab = 'history';
+                },
+                deleteRecord(i) { this.history.splice(i, 1); this.save(); },
+                clearHistory() { if(confirm('清空所有紀錄？')) { this.history = []; this.save(); } },
+                save() { localStorage.setItem('js_hist', JSON.stringify(this.history)); localStorage.setItem('js_mems', JSON.stringify(this.members)); },
+                toggleDropdown(n) { this.openDropdown = this.openDropdown === n ? null : n; },
+                selectPayer(m) { this.expense.payer = m; this.openDropdown = null; },
+                selectSettleCurr(c) { this.settleCurrency = c; this.openDropdown = null; },
+                getFlag(code) { return this.currencyList.find(c => c.code === code)?.flag || '$'; },
+                closeAll() { this.openDropdown = null; }
             }
         }).mount('#app')
     </script>
