@@ -3,87 +3,90 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>找數 v3.0 - 終極完整版</title>
+    <title>找數 v5.0 - 終極修復版</title>
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(10px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; }
-        .btn-indigo { background: #4f46e5; transition: all 0.2s; }
-        .btn-indigo:active { transform: scale(0.95); opacity: 0.8; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 24px; }
+        .btn-indigo { background: #4f46e5; transition: all 0.2s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.3); }
+        .btn-indigo:active { transform: scale(0.95); opacity: 0.9; }
+        
+        /* 固定底部導航 */
+        .nav-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.05); z-index: 1000; height: 80px; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
         
         /* 計算機面板 */
-        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #4f46e5; z-index: 2000; transform: translateY(100%); transition: transform 0.3s ease; }
+        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #1e293b; border-top: 1px solid #4f46e5; z-index: 2000; transform: translateY(100%); transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); }
         .calc-panel.active { transform: translateY(0); }
-        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; padding: 15px; }
-        .calc-btn { background: rgba(255,255,255,0.05); height: 60px; border-radius: 12px; font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
-        .calc-btn:active { background: rgba(255,255,255,0.1); }
-        .calc-op { color: #818cf8; }
+        .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; padding: 20px; }
+        .calc-btn { background: rgba(255,255,255,0.05); height: 58px; border-radius: 14px; font-size: 1.3rem; font-weight: bold; display: flex; align-items: center; justify-content: center; }
+        .calc-op { color: #818cf8; background: rgba(129, 140, 248, 0.1); }
 
-        /* 底部導航固定 */
-        .nav-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.05); padding-bottom: env(safe-area-inset-bottom); z-index: 1000; }
+        /* Modal 遮罩 */
+        .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         
-        /* 隱藏原生剔號，自定義樣式 */
-        .checkbox-custom:checked { background-color: #4f46e5; border-color: #4f46e5; }
-        
-        /* 結算選單向下彈出 */
-        .dropdown-content { position: absolute; top: 100%; right: 0; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 50; min-width: 120px; margin-top: 5px; box-shadow: 0 10px 25px rgba(0,0,0,0.5); }
+        /* 下拉選單向下彈出 */
+        .dropdown-box { position: absolute; top: 100%; right: 0; margin-top: 8px; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 16px; z-index: 100; min-width: 140px; box-shadow: 0 15px 35px rgba(0,0,0,0.6); overflow: hidden; }
     </style>
 </head>
 <body class="pb-32">
     <div id="app" class="max-w-md mx-auto p-5">
         <header class="py-6 text-center">
-            <h1 class="text-4xl font-black tracking-widest text-indigo-400">找數</h1>
+            <h1 class="text-4xl font-black tracking-[0.2em] text-indigo-400">找數</h1>
         </header>
 
-        <div v-show="tab === 'record'">
-            <section class="glass p-4 mb-5">
-                <p class="text-[10px] opacity-40 font-bold uppercase mb-2">團友名單</p>
-                <div class="flex items-center bg-white/5 border border-white/10 rounded-xl overflow-hidden mb-3">
-                    <input type="text" v-model="tempMember" placeholder="輸入名字" class="flex-1 bg-transparent p-3 outline-none text-sm font-bold">
-                    <button @click="addMember" class="btn-indigo px-4 py-2 m-1 rounded-lg text-xs font-black">新增</button>
+        <div v-show="tab === 'record'" class="space-y-5">
+            <section class="glass p-5">
+                <p class="text-[10px] opacity-40 font-black uppercase mb-3 tracking-widest text-indigo-200">團友名單</p>
+                <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 mb-4 focus-within:border-indigo-500/50 transition-all">
+                    <input type="text" v-model="tempMember" placeholder="輸入名字" 
+                           class="flex-1 min-w-0 bg-transparent p-3 outline-none text-sm font-bold placeholder:opacity-20">
+                    <button @click="addMember" 
+                            class="btn-indigo flex-shrink-0 px-6 py-2.5 rounded-lg text-xs font-black uppercase tracking-wider">
+                        新增
+                    </button>
                 </div>
                 <div class="flex flex-wrap gap-2">
-                    <div v-for="(m, i) in members" :key="i" class="bg-white/10 px-3 py-1 rounded-full text-[11px] flex items-center border border-white/5">
-                        {{m}} <span @click="removeMember(i)" class="ml-2 opacity-30 cursor-pointer">×</span>
+                    <div v-for="(m, i) in members" :key="i" class="bg-indigo-500/10 px-3 py-1.5 rounded-full text-[11px] flex items-center border border-indigo-500/20 font-bold">
+                        {{m}} <span @click="removeMember(i)" class="ml-2 opacity-30 hover:opacity-100 cursor-pointer">✕</span>
                     </div>
                 </div>
             </section>
 
-            <section class="glass p-4 mb-5 flex items-center justify-between">
-                <div class="text-[11px] font-bold">匯率 (1 {{activeCurr}} ➜ HKD)</div>
-                <div class="flex items-center gap-2">
-                    <span @click="rateLocked = !rateLocked" class="text-lg cursor-pointer">{{ rateLocked ? '🔒' : '🔓' }}</span>
-                    <input type="number" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2 rounded-lg text-right font-mono text-sm">
+            <section class="glass p-4 flex items-center justify-between">
+                <div class="text-[11px] font-black opacity-60">匯率 (1 {{activeCurr}} ➜ HKD)</div>
+                <div class="flex items-center gap-3">
+                    <span @click="rateLocked = !rateLocked" class="text-xl cursor-pointer select-none">{{ rateLocked ? '🔒' : '🔓' }}</span>
+                    <input type="number" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2 rounded-lg text-right font-mono text-sm font-bold focus:border-indigo-500 outline-none">
                 </div>
             </section>
 
             <section class="glass p-5">
                 <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-black opacity-40 uppercase">NEW BILL</span>
-                    <label class="flex items-center gap-2 text-[10px] font-bold opacity-60">
-                        累加模式 <input type="checkbox" v-model="isAppendMode">
+                    <span class="text-[10px] font-black opacity-40 uppercase tracking-widest">NEW BILL</span>
+                    <label class="flex items-center gap-2 text-[10px] font-black opacity-60 cursor-pointer">
+                        累加 <input type="checkbox" v-model="isAppendMode" class="w-3 h-3">
                     </label>
                 </div>
                 
-                <div @click="showCalc = true" class="bg-white/5 rounded-2xl p-8 text-6xl font-black text-center mb-6 border border-white/5 cursor-pointer">
+                <div @click="showCalc = true" class="bg-white/5 rounded-2xl py-10 text-6xl font-black text-center mb-6 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-95 transition-all text-indigo-100">
                     {{ expense.amount || 0 }}
                 </div>
 
-                <div class="grid grid-cols-4 gap-2 mb-6">
+                <div class="grid grid-cols-4 gap-2 mb-8">
                     <button v-for="c in currencies" :key="c.code" @click="changeCurrency(c.code)"
-                        :class="['py-3 rounded-xl border flex flex-col items-center', activeCurr === c.code ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10 opacity-40']">
+                        :class="['py-3 rounded-xl border flex flex-col items-center transition-all', activeCurr === c.code ? 'bg-indigo-600 border-indigo-400 shadow-lg shadow-indigo-500/30' : 'bg-white/5 border-white/10 opacity-40']">
                         <span class="text-xl">{{c.flag}}</span>
-                        <span class="text-[10px] font-bold">{{c.code}}</span>
+                        <span class="text-[10px] font-black mt-1">{{c.code}}</span>
                     </button>
                 </div>
 
-                <div class="mb-6">
-                    <p class="text-[10px] opacity-40 font-bold uppercase mb-3 text-center italic">揀邊個要分攤費用</p>
+                <div class="mb-8">
+                    <p class="text-[10px] opacity-40 font-black uppercase mb-4 text-center tracking-[0.2em] italic">揀邊個要分攤費用</p>
                     <div class="flex flex-wrap justify-center gap-2">
                         <button v-for="m in members" :key="m" @click="toggleSplit(m)"
-                            :class="['px-4 py-2 rounded-xl border text-xs font-bold transition-all', expense.splitWith.includes(m) ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10 opacity-30']">
+                            :class="['px-4 py-2.5 rounded-xl border text-[11px] font-black transition-all', expense.splitWith.includes(m) ? 'bg-indigo-600 border-indigo-400' : 'bg-white/5 border-white/10 opacity-30']">
                             {{m}}
                         </button>
                     </div>
@@ -91,105 +94,112 @@
 
                 <div class="space-y-4">
                     <div>
-                        <p class="text-[10px] opacity-40 font-bold uppercase mb-1">項目備註</p>
-                        <input type="text" v-model="expense.desc" placeholder="輸入項目..." class="w-full bg-white/5 border border-white/10 p-3 rounded-xl font-bold text-sm">
+                        <p class="text-[10px] opacity-40 font-black uppercase mb-1 ml-1">項目備註</p>
+                        <input type="text" v-model="expense.desc" placeholder="..." class="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-sm outline-none focus:border-indigo-500">
                     </div>
-                    <div class="flex justify-between items-center bg-white/5 p-3 rounded-xl border border-white/10 relative">
-                        <span class="text-[10px] opacity-40 font-bold uppercase">付款人</span>
-                        <div @click.stop="showPayerMenu = !showPayerMenu" class="flex items-center gap-2 cursor-pointer">
-                            <span class="font-black">{{ expense.payer || '選人' }}</span>
+                    <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl border border-white/10 relative cursor-pointer" @click.stop="showPayerMenu = !showPayerMenu">
+                        <span class="text-[10px] opacity-40 font-black uppercase">付款人</span>
+                        <div class="flex items-center gap-2">
+                            <span class="font-black text-indigo-300">{{ expense.payer || '選人' }}</span>
                             <span class="text-[10px] opacity-30">▼</span>
                         </div>
-                        <div v-if="showPayerMenu" class="dropdown-content w-32">
-                            <div v-for="m in members" :key="m" @click="expense.payer = m; showPayerMenu = false" class="p-3 text-xs font-bold border-b border-white/5 active:bg-indigo-500">{{m}}</div>
+                        <div v-if="showPayerMenu" class="dropdown-box">
+                            <div v-for="m in members" :key="m" @click.stop="expense.payer = m; showPayerMenu = false" class="p-4 text-xs font-bold border-b border-white/5 hover:bg-indigo-600 active:bg-indigo-700 transition-colors">{{m}}</div>
                         </div>
                     </div>
                 </div>
 
-                <button @click="saveRecord" class="w-full btn-indigo mt-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest">確認紀錄</button>
+                <button @click="saveRecord" class="w-full btn-indigo mt-8 py-4 rounded-2xl font-black text-sm uppercase tracking-[0.3em]">確認紀錄</button>
             </section>
         </div>
 
         <div v-show="tab === 'history'">
-            <section class="glass p-5 min-h-[500px]">
-                <div class="flex justify-between items-start mb-6">
-                    <div class="flex flex-col gap-2">
-                        <h2 class="text-xs font-black text-indigo-300">歷史明細</h2>
+            <section class="glass p-5 min-h-[550px] relative">
+                <div class="flex justify-between items-start mb-8">
+                    <div class="flex flex-col gap-3">
+                        <h2 class="text-xs font-black text-indigo-300 tracking-widest uppercase">歷史明細</h2>
                         <div class="relative">
-                            <button @click.stop="showSortMenu = !showSortMenu" class="text-[10px] bg-white/5 border border-white/10 px-2 py-1 rounded">
-                                篩選付款人: {{ filterPayer || '全部' }} ▼
+                            <button @click.stop="showSortMenu = !showSortMenu" class="text-[10px] bg-indigo-500/10 border border-indigo-500/20 px-3 py-1.5 rounded-lg font-bold flex items-center gap-2">
+                                👨‍💼 付款人: {{ filterPayer || '全部' }} <span class="opacity-30">▼</span>
                             </button>
-                            <div v-if="showSortMenu" class="dropdown-content left-0 w-28">
-                                <div @click="filterPayer = ''; showSortMenu = false" class="p-2 text-[10px]">全部</div>
-                                <div v-for="m in members" @click="filterPayer = m; showSortMenu = false" class="p-2 text-[10px] border-t border-white/5">{{m}}</div>
+                            <div v-if="showSortMenu" class="dropdown-box !left-0 !top-10 w-36">
+                                <div @click="filterPayer = ''; showSortMenu = false" class="p-3 text-xs font-bold hover:bg-white/10">顯示全部</div>
+                                <div v-for="m in members" @click="filterPayer = m; showSortMenu = false" class="p-3 text-xs font-bold border-t border-white/5 hover:bg-white/10">{{m}}</div>
                             </div>
                         </div>
                     </div>
-                    <div class="text-right">
-                        <div class="text-[10px] opacity-40 uppercase font-bold">總支出 (HKD)</div>
-                        <div class="text-xl font-black text-indigo-400">{{ totalExpenseHKD.toFixed(1) }}</div>
-                        <button @click="clearHistory" class="text-[9px] opacity-20 underline mt-2">清除全部</button>
+                    <div @click="showTotalDetails = true" class="text-right cursor-pointer group active:opacity-60 transition-all bg-indigo-500/10 p-3 rounded-2xl border border-indigo-500/20">
+                        <div class="text-[9px] opacity-50 uppercase font-black tracking-tighter mb-1">總支出 (HKD) ⓘ</div>
+                        <div class="text-2xl font-black text-indigo-400 group-hover:scale-105 transition-transform">{{ totalExpenseHKD.toFixed(1) }}</div>
+                        <button @click.stop="clearHistory" class="text-[9px] opacity-20 underline mt-2 block ml-auto">清空歷史</button>
                     </div>
                 </div>
 
                 <div class="space-y-4">
-                    <div v-for="(h, i) in filteredHistory" :key="i" class="bg-white/5 p-4 rounded-xl border border-white/5">
-                        <div class="flex justify-between items-start mb-2">
+                    <div v-for="(h, i) in filteredHistory" :key="i" class="bg-white/5 p-4 rounded-2xl border border-white/5 transition-all hover:bg-white/10">
+                        <div class="flex justify-between items-start mb-3">
                             <div>
-                                <span class="text-lg mr-2">{{ getFlag(h.currency) }}</span>
-                                <span class="font-bold text-sm">{{ h.desc || '無備註' }}</span>
-                                <div class="text-[10px] opacity-30 mt-1">{{ formatTime(h.date) }} • {{ h.payer }} 墊付</div>
+                                <div class="flex items-center gap-2 mb-1">
+                                    <span class="text-xl">{{ getFlag(h.currency) }}</span>
+                                    <span class="font-black text-sm text-indigo-100">{{ h.desc || '冇寫備註' }}</span>
+                                </div>
+                                <div class="text-[10px] opacity-40 font-bold uppercase tracking-widest">{{ formatTime(h.date) }} • {{ h.payer }} 墊付</div>
                             </div>
                             <div class="text-right">
-                                <div class="font-mono font-black text-lg">{{ h.amount }}</div>
-                                <div class="text-[9px] opacity-40">每人: {{ (h.amount / h.splitWith.length).toFixed(1) }}</div>
+                                <div class="font-mono font-black text-xl text-indigo-300">{{ h.amount }}</div>
+                                <div class="text-[9px] opacity-40 font-bold">每人: {{ (h.amount / h.splitWith.length).toFixed(1) }}</div>
                             </div>
                         </div>
-                        <div class="flex flex-wrap gap-1 mt-2 pt-2 border-t border-white/5">
-                            <span v-for="sm in h.splitWith" class="text-[9px] bg-indigo-500/20 px-2 py-0.5 rounded text-indigo-300">{{sm}}</span>
-                            <button @click="deleteRecord(i)" class="ml-auto text-[9px] text-red-400 opacity-50">刪除</button>
+                        <div class="flex flex-wrap gap-1.5 mt-3 pt-3 border-t border-white/5">
+                            <span v-for="sm in h.splitWith" class="text-[9px] bg-indigo-500/20 px-2.5 py-1 rounded-md text-indigo-300 font-black">{{sm}}</span>
+                            <button @click="deleteRecord(i)" class="ml-auto text-[10px] text-red-400/50 hover:text-red-400">刪除</button>
                         </div>
                     </div>
+                    <div v-if="filteredHistory.length === 0" class="text-center py-24 opacity-20 text-xs italic font-bold">仲未有任何紀錄喎...</div>
                 </div>
             </section>
         </div>
 
         <div v-show="tab === 'settle'">
-            <section class="glass p-5">
-                <div class="flex justify-between items-center mb-6">
+            <section class="glass p-6 min-h-[450px]">
+                <div class="flex justify-between items-center mb-8">
                     <div>
-                        <h2 class="text-sm font-black text-indigo-300">結算報表</h2>
-                        <p class="text-[10px] opacity-40 uppercase font-bold mt-1">Settlement Transfers</p>
+                        <h2 class="text-sm font-black text-indigo-300 tracking-widest">結算報表</h2>
+                        <p class="text-[10px] opacity-30 uppercase font-black mt-1 italic">Settlement Transfers</p>
                     </div>
                     <div class="relative">
-                        <button @click.stop="showSettleMenu = !showSettleMenu" class="bg-indigo-500/20 border border-indigo-500/40 px-3 py-1 rounded-lg flex items-center gap-2">
-                            <span class="text-xs">{{getFlag(settleCurr)}} {{settleCurr}}</span>
-                            <span class="text-[10px]">▼</span>
+                        <button @click.stop="showSettleMenu = !showSettleMenu" class="bg-indigo-500/20 border border-indigo-500/40 px-4 py-2 rounded-xl flex items-center gap-3">
+                            <span class="text-xs font-black">{{getFlag(settleCurr)}} {{settleCurr}}</span>
+                            <span class="text-[10px] opacity-50">▼</span>
                         </button>
-                        <div v-if="showSettleMenu" class="dropdown-content w-28">
-                            <div v-for="c in currencies" @click="settleCurr = c.code; showSettleMenu = false" class="p-3 text-xs font-bold border-b border-white/5 flex justify-between">
+                        <div v-if="showSettleMenu" class="dropdown-box">
+                            <div v-for="c in currencies" @click="settleCurr = c.code; showSettleMenu = false" class="p-4 text-xs font-bold border-b border-white/5 hover:bg-white/10 flex justify-between gap-6 transition-colors">
                                 <span>{{c.flag}} {{c.code}}</span>
-                                <span v-if="settleCurr === c.code">●</span>
+                                <span v-if="settleCurr === c.code" class="text-indigo-400 text-xs">●</span>
                             </div>
                         </div>
                     </div>
                 </div>
 
-                <div class="space-y-3 mb-10">
-                    <div v-for="s in transfers" class="bg-indigo-500/5 p-4 rounded-xl border border-indigo-500/10 flex justify-between items-center">
-                        <div class="text-xs"><span class="font-black text-indigo-200">{{ s.from }}</span> <span class="opacity-30 mx-1">俾</span> <span class="font-black">{{ s.to }}</span></div>
-                        <div class="font-mono font-black text-indigo-400 text-sm">{{ getFlag(settleCurr) }} {{ s.amount.toFixed(1) }}</div>
+                <div class="space-y-4 mb-12">
+                    <div v-for="s in transfers" class="bg-indigo-500/5 p-5 rounded-2xl border border-indigo-500/10 flex justify-between items-center shadow-inner">
+                        <div class="text-xs">
+                            <span class="font-black text-indigo-200 text-sm">{{ s.from }}</span> 
+                            <span class="opacity-20 mx-2 uppercase italic text-[10px]">俾</span> 
+                            <span class="font-black text-white text-sm">{{ s.to }}</span>
+                        </div>
+                        <div class="font-mono font-black text-indigo-400 text-base">{{ getFlag(settleCurr) }} {{ s.amount.toFixed(1) }}</div>
                     </div>
-                    <div v-if="transfers.length === 0" class="text-center py-10 opacity-20 text-xs italic">大家清晒數喇！</div>
+                    <div v-if="transfers.length === 0" class="text-center py-16 opacity-20 text-xs italic font-black">清晒數喇，去食餐好嘅！</div>
                 </div>
 
-                <div class="border-t border-white/10 pt-6">
-                    <h2 class="text-xs font-black text-indigo-300 uppercase mb-4 tracking-widest">Account Balance ({{settleCurr}})</h2>
-                    <div class="space-y-2">
-                        <div v-for="(bal, name) in balances" class="flex justify-between items-center text-xs p-2">
-                            <span class="font-bold">{{name}}</span>
-                            <span :class="['font-mono font-black', bal >= 0 ? 'text-green-400' : 'text-red-400']">
-                                {{ bal >= 0 ? '+' : '' }}{{ bal.toFixed(1) }}
+                <div class="border-t border-white/10 pt-8">
+                    <h2 class="text-[10px] font-black text-indigo-300 uppercase mb-5 tracking-[0.3em] text-center">Account Balance ({{settleCurr}})</h2>
+                    <div class="space-y-3 px-2">
+                        <div v-for="(bal, name) in balances" class="flex justify-between items-center text-xs p-3 bg-white/5 rounded-xl border border-white/5">
+                            <span class="font-black opacity-80">{{name}}</span>
+                            <span :class="['font-mono font-black text-sm', bal >= 0.1 ? 'text-green-400' : (bal < -0.1 ? 'text-red-400' : 'opacity-20')]">
+                                {{ bal >= 0.1 ? '+' : '' }}{{ bal.toFixed(1) }}
                             </span>
                         </div>
                     </div>
@@ -198,42 +208,74 @@
         </div>
 
         <div :class="['calc-panel', showCalc ? 'active' : '']">
-            <div class="flex items-center justify-between p-4 border-b border-white/5">
-                <div class="text-3xl font-mono font-black text-indigo-400 truncate flex-1 text-right mr-4">{{ calcInput || '0' }}</div>
-                <button @click="calcInput = ''" class="w-12 h-12 bg-red-500/20 text-red-400 rounded-full font-black text-xl">C</button>
+            <div class="flex items-center justify-between px-6 py-5 border-b border-white/5 bg-white/5">
+                <div class="text-4xl font-mono font-black text-indigo-400 truncate flex-1 text-right mr-6 tracking-wider">{{ calcInput || '0' }}</div>
+                <button @click="calcInput = ''" class="w-14 h-14 bg-red-500/20 text-red-400 rounded-full font-black text-xl active:scale-90 transition-all flex items-center justify-center">C</button>
             </div>
             <div class="calc-grid">
                 <button @click="calcInput += '7'" class="calc-btn">7</button>
                 <button @click="calcInput += '8'" class="calc-btn">8</button>
                 <button @click="calcInput += '9'" class="calc-btn">9</button>
-                <button @click="calcInput += '*'" class="calc-btn calc-op">×</button>
+                <button @click="calcInput += '*'" class="calc-btn calc-op text-2xl">×</button>
+
                 <button @click="calcInput += '4'" class="calc-btn">4</button>
                 <button @click="calcInput += '5'" class="calc-btn">5</button>
                 <button @click="calcInput += '6'" class="calc-btn">6</button>
-                <button @click="calcInput += '/'" class="calc-btn calc-op">÷</button>
+                <button @click="calcInput += '/'" class="calc-btn calc-op text-2xl">÷</button>
+
                 <button @click="calcInput += '1'" class="calc-btn">1</button>
                 <button @click="calcInput += '2'" class="calc-btn">2</button>
                 <button @click="calcInput += '3'" class="calc-btn">3</button>
-                <button @click="calcInput += '+'" class="calc-btn calc-op">+</button>
+                <button @click="calcInput += '+'" class="calc-btn calc-op text-2xl">+</button>
+
                 <button @click="calcInput += '0'" class="calc-btn">0</button>
                 <button @click="calcInput += '.'" class="calc-btn">.</button>
-                <button @click="calcInput = calcInput.slice(0,-1)" class="calc-btn calc-op">⌫</button>
-                <button @click="calcInput += '-'" class="calc-btn calc-op">-</button>
-                <button @click="calcExec" class="calc-btn calc-op">=</button>
-                <button @click="calcConfirm" class="calc-btn btn-indigo col-span-2 text-white">OK</button>
-                <button @click="showCalc = false" class="calc-btn">⬇</button>
+                <button @click="calcInput = calcInput.slice(0,-1)" class="calc-btn calc-op text-xl">⌫</button>
+                <button @click="calcInput += '-'" class="calc-btn calc-op text-2xl">-</button>
+
+                <button @click="calcExec" class="calc-btn calc-op text-2xl">=</button>
+                <button @click="calcConfirm" class="calc-btn btn-indigo col-span-2 text-white text-base font-black tracking-[0.2em]">OK</button>
+                <button @click="showCalc = false" class="calc-btn text-xl">⬇</button>
             </div>
         </div>
 
-        <nav class="nav-fixed flex justify-around py-3">
+        <div v-if="showTotalDetails" class="modal-overlay" @click.self="showTotalDetails = false">
+            <div class="glass w-full max-w-xs p-8 bg-[#1e293b] border-indigo-500/30">
+                <div class="flex justify-between items-center mb-8">
+                    <h3 class="font-black text-indigo-300 tracking-widest">支出統計</h3>
+                    <div class="flex gap-1.5 bg-white/5 p-1 rounded-full border border-white/5">
+                        <button v-for="c in currencies" @click="detailsCurr = c.code"
+                            :class="['w-9 h-9 rounded-full text-[9px] font-black transition-all', detailsCurr === c.code ? 'bg-indigo-600 shadow-md' : 'opacity-30']">
+                            {{c.code}}
+                        </button>
+                    </div>
+                </div>
+                
+                <div class="space-y-4 mb-8">
+                    <div v-for="(amt, name) in individualSpendings" :key="name" class="flex justify-between items-center border-b border-white/5 pb-3">
+                        <span class="text-xs font-black opacity-60">{{name}} 總墊付:</span>
+                        <span class="font-mono font-black text-indigo-300">{{ getFlag(detailsCurr) }} {{ amt.toFixed(1) }}</span>
+                    </div>
+                </div>
+
+                <div class="bg-indigo-500/10 p-5 rounded-2xl border border-indigo-500/20 flex justify-between items-center shadow-lg shadow-indigo-500/5">
+                    <span class="font-black text-xs text-indigo-200 uppercase tracking-widest">全員加埋:</span>
+                    <span class="font-mono text-xl font-black text-indigo-400">{{ getFlag(detailsCurr) }} {{ groupTotalSpending.toFixed(1) }}</span>
+                </div>
+
+                <button @click="showTotalDetails = false" class="w-full btn-indigo mt-10 py-4 rounded-xl font-black text-sm tracking-widest">返回明細</button>
+            </div>
+        </div>
+
+        <nav class="nav-fixed">
             <button @click="tab = 'record'" :class="['flex flex-col items-center transition-all', tab === 'record' ? 'text-indigo-400 scale-110' : 'opacity-30']">
-                <span class="text-xl">📝</span><span class="text-[9px] font-black uppercase mt-1">記帳</span>
+                <span class="text-2xl">📝</span><span class="text-[10px] font-black uppercase mt-1">記帳</span>
             </button>
             <button @click="tab = 'history'" :class="['flex flex-col items-center transition-all', tab === 'history' ? 'text-indigo-400 scale-110' : 'opacity-30']">
-                <span class="text-xl">🧾</span><span class="text-[9px] font-black uppercase mt-1">明細</span>
+                <span class="text-2xl">🧾</span><span class="text-[10px] font-black uppercase mt-1">明細</span>
             </button>
             <button @click="tab = 'settle'" :class="['flex flex-col items-center transition-all', tab === 'settle' ? 'text-indigo-400 scale-110' : 'opacity-30']">
-                <span class="text-xl">💰</span><span class="text-[9px] font-black uppercase mt-1">結算</span>
+                <span class="text-2xl">💰</span><span class="text-[10px] font-black uppercase mt-1">結算</span>
             </button>
         </nav>
     </div>
@@ -243,8 +285,8 @@
         createApp({
             data() {
                 return {
-                    tab: 'record', activeCurr: 'JPY', settleCurr: 'HKD',
-                    showCalc: false, calcInput: '', isAppendMode: false,
+                    tab: 'record', activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
+                    showCalc: false, showTotalDetails: false, calcInput: '', isAppendMode: false,
                     rateLocked: true, manualRate: 0.051, 
                     tempMember: '', members: [], history: [],
                     expense: { amount: 0, desc: '', payer: '', splitWith: [] },
@@ -261,6 +303,18 @@
             computed: {
                 totalExpenseHKD() {
                     return this.history.reduce((sum, h) => sum + (h.amount * h.rate), 0);
+                },
+                individualSpendings() {
+                    let res = {}; this.members.forEach(m => res[m] = 0);
+                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate;
+                    this.history.forEach(h => {
+                        if (res[h.payer] !== undefined) res[h.payer] += (h.amount * h.rate) / targetRate;
+                    });
+                    return res;
+                },
+                groupTotalSpending() {
+                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate;
+                    return this.totalExpenseHKD / targetRate;
                 },
                 filteredHistory() {
                     if (!this.filterPayer) return this.history;
@@ -298,26 +352,25 @@
                     return res;
                 }
             },
-            watch: {
-                activeCurr(newV) { if(!this.rateLocked) this.manualRate = this.currencies.find(c => c.code === newV).rate; }
-            },
             mounted() {
-                const h = localStorage.getItem('js_h'); if(h) this.history = JSON.parse(h);
-                const m = localStorage.getItem('js_m'); if(m) {
+                const h = localStorage.getItem('js_h_v5'); if(h) this.history = JSON.parse(h);
+                const m = localStorage.getItem('js_m_v5'); if(m) {
                     this.members = JSON.parse(m);
                     this.expense.splitWith = [...this.members];
                     if(this.members.length > 0) this.expense.payer = this.members[0];
                 }
+                // 點擊空白處關閉選單
                 document.addEventListener('click', () => { 
                     this.showPayerMenu = false; this.showSettleMenu = false; this.showSortMenu = false; 
                 });
             },
             methods: {
                 addMember() {
-                    if (this.tempMember && !this.members.includes(this.tempMember)) {
-                        this.members.push(this.tempMember);
-                        this.expense.splitWith.push(this.tempMember);
-                        if (!this.expense.payer) this.expense.payer = this.tempMember;
+                    const name = this.tempMember.trim();
+                    if (name && !this.members.includes(name)) {
+                        this.members.push(name);
+                        this.expense.splitWith.push(name);
+                        if (!this.expense.payer) this.expense.payer = name;
                         this.tempMember = ''; this.save();
                     }
                 },
@@ -329,7 +382,7 @@
                 },
                 changeCurrency(code) {
                     this.activeCurr = code;
-                    this.manualRate = this.currencies.find(c => c.code === code).rate;
+                    if (!this.rateLocked) this.manualRate = this.currencies.find(c => c.code === code).rate;
                 },
                 calcExec() { try { this.calcInput = eval(this.calcInput).toString(); } catch { this.calcInput = 'Error'; } },
                 calcConfirm() {
@@ -341,7 +394,7 @@
                 },
                 saveRecord() {
                     if (this.expense.amount <= 0 || !this.expense.payer || this.expense.splitWith.length === 0) {
-                        return alert('入咗錢、揀咗人未？');
+                        return alert('請確保入咗金額、揀咗付款人同分攤成員！');
                     }
                     this.history.unshift({
                         ...this.expense,
@@ -353,10 +406,10 @@
                     this.save(); this.tab = 'history';
                 },
                 deleteRecord(i) { this.history.splice(i, 1); this.save(); },
-                clearHistory() { if(confirm('真係清空歷史紀錄？')) { this.history = []; this.save(); } },
+                clearHistory() { if(confirm('真係要清空所有歷史紀錄？')) { this.history = []; this.save(); } },
                 save() {
-                    localStorage.setItem('js_h', JSON.stringify(this.history));
-                    localStorage.setItem('js_m', JSON.stringify(this.members));
+                    localStorage.setItem('js_h_v5', JSON.stringify(this.history));
+                    localStorage.setItem('js_m_v5', JSON.stringify(this.members));
                 },
                 getFlag(code) { return this.currencies.find(c => c.code === code)?.flag || '$'; },
                 formatTime(ts) {
