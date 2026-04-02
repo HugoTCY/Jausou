@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1e293b">
-    <title>找數 v24.8</title>
+    <title>找數 v24.9</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -119,8 +119,11 @@
                             <div>
                                 <span class="text-sm font-bold block">{{h.desc || '項目'}}</span>
                                 <span class="text-[10px] opacity-40">{{h.date}} · {{h.payer}} 付</span>
-                                <div class="text-[10px] text-indigo-300 opacity-80 mt-1">
-                                    分攤: {{ h.splits.map(s => s.name).join(', ') }}
+                                <div class="text-[10px] text-indigo-300 opacity-80 mt-1 flex flex-wrap gap-x-2 gap-y-1">
+                                    <span class="opacity-50">分攤：</span>
+                                    <span v-for="(s, idx) in h.splits" :key="idx" class="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
+                                        {{s.name}} ({{ formatMoney(s.amount, h.currency) }})
+                                    </span>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -145,19 +148,6 @@
                 </div>
 
                 <div class="mb-8">
-                    <h3 class="text-[10px] font-black opacity-50 mb-3 border-b border-white/10 pb-2">Account Balance (個人結餘)</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div v-for="b in displayBalances" :key="b.name" 
-                             :class="['p-3 rounded-xl border flex flex-col', b.amount >= 0 ? 'bg-green-900/10 border-green-500/20' : 'bg-red-900/10 border-red-500/20']">
-                            <span class="text-[10px] opacity-70">{{b.name}}</span>
-                            <span :class="['font-mono font-black text-sm', b.amount >= 0 ? 'text-green-400' : 'text-red-400']">
-                                {{ b.amount > 0 ? '+' : ''}}{{ formatMoney(b.amount, settleCurrency) }}
-                            </span>
-                        </div>
-                    </div>
-                </div>
-
-                <div>
                     <h3 class="text-[10px] font-black opacity-50 mb-3 border-b border-white/10 pb-2">Settlement Transfers (最終轉帳)</h3>
                     <div class="space-y-3">
                         <div v-for="s in settlementTransfers" class="px-4 py-3 bg-indigo-900/20 rounded-xl flex justify-between items-center border border-indigo-500/20 shadow-sm">
@@ -167,6 +157,19 @@
                             </div>
                         </div>
                         <div v-if="settlementTransfers.length === 0" class="text-center py-6 opacity-30 text-xs">無需轉帳</div>
+                    </div>
+                </div>
+
+                <div>
+                    <h3 class="text-[10px] font-black opacity-50 mb-3 border-b border-white/10 pb-2">Account Balance (個人結餘)</h3>
+                    <div class="grid grid-cols-2 gap-2">
+                        <div v-for="b in displayBalances" :key="b.name" 
+                             :class="['p-3 rounded-xl border flex flex-col', b.amount >= 0 ? 'bg-green-900/10 border-green-500/20' : 'bg-red-900/10 border-red-500/20']">
+                            <span class="text-[10px] opacity-70">{{b.name}}</span>
+                            <span :class="['font-mono font-black text-sm', b.amount >= 0 ? 'text-green-400' : 'text-red-400']">
+                                {{ b.amount > 0 ? '+' : ''}}{{ formatMoney(b.amount, settleCurrency) }}
+                            </span>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -190,8 +193,7 @@
                 <button v-for="b in ['1','2','3']" @click="calcInput(b)" class="calc-btn">{{b}}</button>
                 <button @click="calcInput('+')" class="calc-btn bg-white/5 text-indigo-400">+</button>
                 <button @click="calcInput('0')" class="calc-btn">0</button>
-                <button @click="calcInput('.')" class="calc-btn">.</button>
-                <button @click="calcBackspace" class="calc-btn bg-white/10">⌫</button>
+                <button @click="calcInput('.')" class="calc-btn">{{b === '.' ? '.' : '0'}}</button> <button @click="calcBackspace" class="calc-btn bg-white/10">⌫</button>
                 <button @click="calcInput('-')" class="calc-btn bg-white/5 text-indigo-400">-</button>
                 <button @click="calcResult" class="calc-btn text-3xl font-black text-indigo-400 bg-white/5">=</button>
                 <button @click="closeCalc" class="calc-btn col-span-2 bg-indigo-600 text-lg font-black shadow-lg">OK</button>
@@ -202,27 +204,22 @@
         <div v-if="showTotalModal" class="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-5 backdrop-blur-sm">
             <div class="glass-card w-full max-w-sm p-6 shadow-2xl relative bg-[#0f172a]">
                 <button @click="showTotalModal = false" class="absolute top-4 right-5 text-xl opacity-50">×</button>
-                
                 <div class="flex justify-between items-center mb-6 pr-6">
                     <h2 class="text-sm font-black text-indigo-300 uppercase tracking-widest">支出統計</h2>
                     <select v-model="totalCurrency" class="text-[10px] p-1 px-2 rounded-lg bg-indigo-600/30 border border-indigo-500/50 font-bold">
                         <option v-for="c in currencyList" :value="c.code">{{c.flag}} {{c.code}}</option>
                     </select>
                 </div>
-
                 <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-xl p-4 mb-4 text-center">
                     <div class="text-[10px] opacity-50 mb-1">團隊總消費 (Grand Total)</div>
                     <div class="text-3xl font-black text-white">
                         {{ getFlagByCode(totalCurrency) }} {{ formatMoney(totalExpendituresData.grandTotal, totalCurrency) }}
                     </div>
                 </div>
-
                 <div class="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
                     <div v-for="(spend, name) in totalExpendituresData.individuals" :key="name" class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
                         <span class="text-sm font-bold">{{name}}</span>
-                        <span class="font-mono font-black text-indigo-400">
-                            {{ formatMoney(spend, totalCurrency) }}
-                        </span>
+                        <span class="font-mono font-black text-indigo-400">{{ formatMoney(spend, totalCurrency) }}</span>
                     </div>
                 </div>
                 <button @click="showTotalModal = false" class="w-full mt-6 bg-indigo-600 py-3 rounded-xl text-xs font-bold uppercase tracking-widest">關閉</button>
@@ -243,9 +240,9 @@
                 return {
                     currentTab: 'record', 
                     activeCurrency: 'JPY',
-                    settleCurrency: 'HKD', // 結算頁面貨幣
-                    totalCurrency: 'HKD',  // 總支出 Modal 貨幣
-                    historyFilter: 'All',  // History Payer 篩選
+                    settleCurrency: 'HKD',
+                    totalCurrency: 'HKD',
+                    historyFilter: 'All',
                     currencyList: [
                         { code: 'HKD', flag: '🇭🇰' },
                         { code: 'JPY', flag: '🇯🇵' },
@@ -290,7 +287,7 @@
                     const splits = this.isAccumulate ? [...this.customSplits] : this.participants.map(p => ({ name: p, amount: this.expense.amount / this.participants.length, rate: rate }));
                     const now = new Date();
                     this.history.unshift({ 
-                        id: Date.now(), // 加返唯一 ID 方便刪除
+                        id: Date.now(),
                         desc: this.expense.desc, amount: parseFloat(this.expense.amount), payer: this.expense.payer, 
                         rate: rate, currency: this.activeCurrency, 
                         date: now.toLocaleDateString('zh-HK') + ' ' + now.toLocaleTimeString('zh-HK',{hour12:false, hour:'2-digit', minute:'2-digit'}), 
@@ -305,7 +302,6 @@
                         try { const res = await fetch(`https://open.er-api.com/v6/latest/${c}`); const data = await res.json(); this.rates[c] = data.rates['HKD'].toFixed(5); } catch (e) {}
                     });
                 },
-                // 靚仔數字顯示：日圓/韓圜唔要小數點
                 formatMoney(val, curr) {
                     if (!val) return '0';
                     if (curr === 'JPY' || curr === 'KRW') return Math.round(val).toLocaleString();
@@ -313,60 +309,32 @@
                 }
             },
             computed: {
-                // History 篩選
-                filteredHistory() {
-                    if (this.historyFilter === 'All') return this.history;
-                    return this.history.filter(h => h.payer === this.historyFilter);
-                },
-                // 總支出計算 (支援動態貨幣)
+                filteredHistory() { return this.historyFilter === 'All' ? this.history : this.history.filter(h => h.payer === this.historyFilter); },
                 totalExpendituresData() {
                     let d = {}; let grandTotalHKD = 0;
                     this.members.forEach(m => d[m] = 0);
-                    this.history.forEach(h => { 
-                        h.splits.forEach(s => { 
-                            let hkdVal = s.amount * s.rate;
-                            if (d[s.name] !== undefined) d[s.name] += hkdVal; 
-                            grandTotalHKD += hkdVal;
-                        }); 
-                    });
+                    this.history.forEach(h => { h.splits.forEach(s => { let hkdVal = s.amount * s.rate; if (d[s.name] !== undefined) d[s.name] += hkdVal; grandTotalHKD += hkdVal; }); });
                     let targetRate = this.rates[this.totalCurrency] || 1;
-                    let res = {};
-                    for (let m in d) res[m] = d[m] / targetRate;
+                    let res = {}; for (let m in d) res[m] = d[m] / targetRate;
                     return { individuals: res, grandTotal: grandTotalHKD / targetRate };
                 },
-                // 核心餘額計算 (全部轉化為 HKD 作為基準)
                 calculatedBalancesHKD() {
                     let balances = {}; this.members.forEach(m => balances[m] = 0);
-                    this.history.forEach(h => {
-                        balances[h.payer] += (h.amount * h.rate);
-                        h.splits.forEach(s => { balances[s.name] -= (s.amount * s.rate); });
-                    });
+                    this.history.forEach(h => { balances[h.payer] += (h.amount * h.rate); h.splits.forEach(s => { balances[s.name] -= (s.amount * s.rate); }); });
                     return balances;
                 },
-                // 顯示用 Account Balance (支援動態貨幣)
                 displayBalances() {
                     let targetRate = this.rates[this.settleCurrency] || 1;
-                    let arr = [];
-                    for (let m in this.calculatedBalancesHKD) {
-                        arr.push({ name: m, amount: this.calculatedBalancesHKD[m] / targetRate });
-                    }
+                    let arr = []; for (let m in this.calculatedBalancesHKD) arr.push({ name: m, amount: this.calculatedBalancesHKD[m] / targetRate });
                     return arr.sort((a,b) => b.amount - a.amount);
                 },
-                // 結算轉帳 (支援動態貨幣)
                 settlementTransfers() {
                     let balances = { ...this.calculatedBalancesHKD };
                     let d = [], c = [], res = [];
                     for (let n in balances) { if (balances[n] < -0.01) d.push({n, a: -balances[n]}); else if (balances[n] > 0.01) c.push({n, a: balances[n]}); }
                     d.sort((a,b)=>b.a-a.a); c.sort((a,b)=>b.a-a.a);
-                    let di=0, ci=0;
-                    let targetRate = this.rates[this.settleCurrency] || 1;
-                    
-                    while(di<d.length && ci<c.length){ 
-                        let p = Math.min(d[di].a, c[ci].a); 
-                        res.push({from: d[di].n, to: c[ci].n, amount: p / targetRate}); 
-                        d[di].a-=p; c[ci].a-=p; 
-                        if(d[di].a<0.01) di++; if(c[ci].a<0.01) ci++; 
-                    }
+                    let di=0, ci=0; let targetRate = this.rates[this.settleCurrency] || 1;
+                    while(di<d.length && ci<c.length){ let p = Math.min(d[di].a, c[ci].a); res.push({from: d[di].n, to: c[ci].n, amount: p / targetRate}); d[di].a-=p; c[ci].a-=p; if(d[di].a<0.01) di++; if(c[ci].a<0.01) ci++; }
                     return res;
                 }
             }
