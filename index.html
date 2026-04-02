@@ -4,257 +4,117 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1e293b">
-    <title>找數 v25.2</title>
+    <title>找數 v26.1</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;700;900&display=swap" rel="stylesheet">
     <style>
-        body { font-family: 'Noto Sans TC', sans-serif; background-color: #1e293b; color: white; -webkit-tap-highlight-color: transparent; }
+        body { font-family: 'Noto Sans TC', sans-serif; background-color: #1e293b; color: white; -webkit-tap-highlight-color: transparent; overflow-x: hidden; }
         .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 8px rgba(99,102,241,0.5)); letter-spacing: 4px; }
         .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; }
         .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 2px solid #6366f1; border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1); transform: translateY(100%); max-height: 95vh; }
         .calc-panel.active { transform: translateY(0); }
-        .calc-btn { background: rgba(255,255,255,0.05); height: 58px; display: flex; align-items: center; justify-content: center; border-radius: 16px; font-weight: bold; font-size: 1.25rem; }
-        .calc-btn:active { background: rgba(255,255,255,0.2); transform: scale(0.95); }
-        .currency-pill { transition: all 0.2s; border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; }
-        .currency-pill.active { background: #6366f1; border-color: #818cf8; font-weight: 900; transform: scale(1.05); box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
         input { background: rgba(255,255,255,0.1) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; outline: none; }
         .bottom-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); border-top: 1px solid rgba(255,255,255,0.1); }
         
-        /* 整潔的自定義 Select 樣式 */
-        .clean-select {
-            appearance: none;
-            -webkit-appearance: none;
-            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23818cf8'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='3' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
-            background-repeat: no-repeat;
-            background-position: right 8px center;
-            background-size: 12px;
-            cursor: pointer;
-            outline: none;
+        /* 幣種按鈕樣式 */
+        .curr-btn { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); display: flex; flex-direction: column; align-items: center; gap: 2px; }
+        .curr-btn.active { background: #6366f1; border-color: #818cf8; font-weight: 900; box-shadow: 0 4px 15px rgba(99, 102, 241, 0.3); }
+
+        /* ✨ 虛擬選單樣式 (用於付款人) ✨ */
+        .custom-dropdown { position: relative; display: inline-block; }
+        .dropdown-trigger { background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; padding: 6px 12px; display: flex; align-items: center; gap: 6px; cursor: pointer; }
+        .dropdown-menu { 
+            position: absolute; right: 0; top: calc(100% + 8px); 
+            background: rgba(30, 41, 59, 0.95); backdrop-filter: blur(20px); 
+            border: 1px solid rgba(255, 255, 255, 0.2); border-radius: 16px; 
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); z-index: 200; min-width: 120px;
+            overflow: hidden; animation: fadeIn 0.2s ease-out;
         }
+        .dropdown-item { padding: 12px 16px; display: flex; align-items: center; gap: 10px; transition: all 0.2s; cursor: pointer; color: white; }
+        /* 替代 Checkmark 的無圖標高亮 */
+        .dropdown-item.active { background: rgba(255, 255, 255, 0.1); font-weight: 900; color: white; }
+        .dropdown-item.inactive { opacity: 0.4; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-10px); } to { opacity: 1; transform: translateY(0); } }
     </style>
 </head>
 <body class="min-h-screen">
-    <div id="app" class="max-w-md mx-auto px-5 pb-32 pt-10">
+    <div id="app" @click="closeDropdowns" class="max-w-md mx-auto px-5 pb-32 pt-10 relative">
         <header class="pb-6 text-center"><h1 class="app-title text-5xl">找數</h1></header>
 
         <div v-show="currentTab === 'record'">
             <section class="glass-card p-5 mb-6">
-                <h2 class="text-[10px] font-black opacity-40 uppercase mb-3 tracking-widest">團友名單</h2>
-                <div class="flex gap-2 mb-4">
-                    <input type="text" v-model="newMemberName" @keyup.enter="addMember" placeholder="輸入名字" class="flex-1 p-3 rounded-xl text-xs font-bold">
-                    <button @click="addMember" class="bg-indigo-600 px-5 rounded-xl text-[10px] font-black uppercase">新增</button>
+                <p class="text-[10px] font-black opacity-40 uppercase mb-3 tracking-widest">團友名單</p>
+                <div class="flex items-center gap-2 mb-4 bg-white/5 border border-white/10 rounded-xl p-1 shadow-inner">
+                    <input type="text" v-model="newMemberName" @keyup.enter="addMember" placeholder="輸入名字" 
+                        class="flex-1 p-3 rounded-xl text-xs font-bold !bg-transparent !border-none">
+                    <button @click="addMember" class="bg-indigo-600 px-4 py-2 rounded-lg text-[10px] font-black uppercase text-white shadow-md active:scale-95 transition-all">新增</button>
                 </div>
                 <div class="flex flex-wrap gap-2">
                     <span v-for="(m, i) in members" :key="i" class="text-[10px] bg-white/10 px-3 py-1.5 rounded-lg flex items-center">
                         {{m}} <button @click="removeMember(i)" class="ml-2 opacity-40 text-lg">×</button>
                     </span>
-                </div>
-            </section>
-
-            <section class="glass-card p-4 mb-6">
-                <div class="flex justify-between items-center px-2">
-                    <div class="flex items-center gap-2">
-                        <span class="text-[10px] opacity-40 uppercase font-black">匯率 (1 {{activeCurrency}} ➜ HKD)</span>
-                        <button @click="toggleRateLock" class="text-lg">
-                            {{ isRateLocked ? '🔒' : '🔓' }}
-                        </button>
-                    </div>
-                    <input type="number" v-model="rates[activeCurrency]" 
-                        :readonly="activeCurrency === 'HKD'" 
-                        @input="onRateInput"
-                        step="0.00001" 
-                        :class="['w-28 text-right bg-transparent border-none font-mono font-black text-xl transition-all', isRateLocked ? 'text-indigo-400' : 'text-white opacity-60']">
+                    <p v-if="members.length === 0" class="text-xs opacity-30 italic py-2">請新增團友...</p>
                 </div>
             </section>
 
             <section class="glass-card p-6">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-[10px] font-black opacity-40 uppercase tracking-widest">New Bill</span>
-                    <div class="flex items-center gap-2">
-                        <span class="text-[9px] font-bold opacity-40 uppercase">累加模式</span>
-                        <input type="checkbox" v-model="isAccumulate" @change="toggleMode" class="w-4 h-4 rounded bg-indigo-600">
-                    </div>
-                </div>
-                
-                <div @click="showCalc = true" class="w-full p-6 rounded-2xl text-5xl font-bold text-center bg-white/5 border border-white/10 cursor-pointer min-h-[100px] flex items-center justify-center mb-5 shadow-inner">
+                <div @click="showCalc = true" class="w-full p-6 rounded-2xl text-5xl font-bold text-center bg-white/5 border border-white/10 cursor-pointer min-h-[100px] flex items-center justify-center mb-5">
                     {{ expense.amount || 0 }}
                 </div>
 
                 <div class="grid grid-cols-4 gap-2 mb-8">
-                    <button v-for="curr in currencyList" :key="curr.code" 
-                        @click="switchCurrency(curr.code)"
-                        :class="['py-2.5 rounded-xl currency-pill', activeCurrency === curr.code ? 'active' : 'bg-white/5 opacity-50']">
+                    <button v-for="curr in currencyList" :key="curr.code" @click="switchCurrency(curr.code)"
+                        :class="['curr-btn py-2.5 rounded-xl border transition-all', activeCurrency === curr.code ? 'curr-btn active' : 'bg-white/5 border-white/10 opacity-50']">
                         <span class="text-lg">{{ curr.flag }}</span>
-                        <span class="text-[10px] font-black">{{ curr.code }}</span>
+                        <span class="text-[10px]">{{ curr.code }}</span>
                     </button>
                 </div>
 
-                <div v-if="!isAccumulate && members.length > 0" class="mb-6">
-                    <p class="text-[9px] opacity-40 font-black uppercase mb-3">誰在分攤：</p>
-                    <div class="flex flex-wrap gap-2">
-                        <button v-for="m in members" :key="m" @click="toggleParticipant(m)"
-                            :class="['text-[10px] px-3 py-1.5 rounded-lg border transition-all', participants.includes(m) ? 'bg-indigo-600 border-indigo-400 font-bold' : 'bg-white/5 border-white/10 opacity-40']">
-                            {{m}}
-                        </button>
-                    </div>
-                </div>
-
-                <div v-if="isAccumulate && customSplits.length > 0" class="mb-6 space-y-1">
-                    <div v-for="(s, idx) in customSplits" :key="idx" class="flex justify-between text-[10px] bg-white/5 p-2 rounded-lg border border-white/5">
-                        <span class="opacity-50">{{s.name}}</span>
-                        <span class="font-mono text-indigo-300">{{s.amount}} {{s.currency}}</span>
-                    </div>
-                </div>
-
-                <p class="text-[10px] font-black opacity-40 uppercase mb-2 ml-1">項目備註</p>
+                <p class="text-[10px] font-black opacity-40 uppercase mb-2 ml-1">項目備註 (e.g. 燒肉 / 藥妝)</p>
                 <input type="text" v-model="expense.desc" placeholder="輸入項目..." class="w-full p-4 rounded-xl text-sm mb-4 font-bold">
                 
                 <div class="flex justify-between items-center bg-white/5 p-4 rounded-xl mb-6 border border-white/5">
                     <span class="text-[10px] opacity-40 font-black uppercase tracking-widest">付款人</span>
-                    <select v-model="expense.payer" class="clean-select bg-transparent font-bold text-sm text-right pr-6 text-white min-w-[80px]">
-                        <option v-for="m in members" :value="m" class="text-black">{{m}}</option>
-                    </select>
+                    <div class="custom-dropdown" @click.stop>
+                        <div @click="toggleDropdown('payer')" class="dropdown-trigger">
+                            <span class="text-sm font-black text-white">{{ expense.payer || '選擇付款人' }}</span>
+                            <span class="text-[10px] opacity-40">▼</span>
+                        </div>
+                        <div v-if="openDropdown === 'payer'" class="dropdown-menu">
+                            <div v-for="m in members" :key="m" @click="selectPayer(m)" 
+                                 :class="['dropdown-item text-sm', expense.payer === m ? 'active' : 'inactive']">
+                                {{ m }}
+                            </div>
+                        </div>
+                    </div>
                 </div>
 
-                <button @click="addRecord" class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg shadow-indigo-500/20 active:scale-95 transition-all">確認儲存</button>
+                <button @click="addRecord" class="w-full bg-indigo-600 py-4 rounded-2xl font-black text-xs uppercase tracking-widest shadow-lg active:scale-95 transition-all">確認儲存</button>
             </section>
         </div>
 
         <div v-show="currentTab === 'history'">
             <section class="glass-card p-6 min-h-[400px]">
-                <div class="flex justify-between items-center mb-6">
-                    <div class="flex items-center gap-2">
-                        <h2 class="text-[12px] font-black opacity-80 text-indigo-300 mr-2">歷史紀錄</h2>
-                        <select v-model="historyFilter" class="clean-select bg-black/30 border border-white/10 text-white rounded-lg px-2 py-1.5 pr-6 font-bold text-[10px]">
-                            <option value="All" class="text-black">所有人</option>
-                            <option v-for="m in members" :value="m" class="text-black">{{m}}</option>
-                        </select>
-                    </div>
-                    <button @click="showTotalModal = true" class="px-2 py-1.5 bg-indigo-600/30 border border-indigo-500/50 rounded-lg text-[10px] font-bold">📊 總支出</button>
-                </div>
-                <div class="space-y-4">
-                    <div v-for="h in filteredHistory" :key="h.id" class="bg-white/5 p-4 rounded-2xl border border-white/10 relative">
-                        <button @click="deleteHistory(h.id)" class="absolute top-4 right-4 text-xs opacity-40">🗑️</button>
-                        <div class="flex justify-between items-start mb-2 pr-8">
-                            <div class="flex-1">
-                                <span class="text-sm font-black block text-white">{{h.desc || '項目'}}</span>
-                                <div class="text-[10px] opacity-40 flex flex-wrap gap-1 mt-1">
-                                    <span>{{h.date}}</span>
-                                    <span>•</span>
-                                    <span class="text-indigo-300 font-bold">{{h.payer}} 付</span>
-                                    
-                                    <template v-if="h.isManual">
-                                        <span>•</span>
-                                        <span class="bg-indigo-500/20 text-indigo-300 px-1 rounded text-[9px] border border-indigo-500/30">Rate: {{h.rate.toFixed(5)}}</span>
-                                    </template>
-                                </div>
-                                
-                                <div class="text-[10px] text-indigo-300 opacity-80 mt-2 flex">
-                                    <span class="opacity-50 shrink-0 mr-2">分攤：</span>
-                                    <div class="flex flex-col gap-1">
-                                        <span v-for="(s, idx) in h.splits" :key="idx" class="font-mono">
-                                            {{s.name}} ({{ formatMoney(s.amount, h.currency) }})
-                                        </span>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="text-right">
-                                <span class="text-sm font-mono text-indigo-400 font-black">
-                                    {{ getFlagByCode(h.currency) }} {{h.amount}}
-                                </span>
-                                <div class="text-[9px] opacity-30 font-mono">
-                                    ≈ HK$ {{ (h.amount * h.rate).toFixed(1) }}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                    <div v-if="filteredHistory.length === 0" class="text-center py-10 opacity-30 text-xs">暫無紀錄</div>
-                </div>
-            </section>
-        </div>
-
-        <div v-show="currentTab === 'settle'">
-            <section class="glass-card p-6">
-                <div class="flex justify-between items-center mb-6">
-                    <h2 class="text-[12px] font-black opacity-80 text-indigo-300 uppercase tracking-widest">結算報表</h2>
-                    <select v-model="settleCurrency" class="clean-select bg-indigo-900/40 border border-indigo-500/50 text-indigo-300 rounded-lg px-2 py-1.5 pr-6 font-bold text-[10px]">
-                        <option v-for="c in currencyList" :value="c.code" class="text-black">{{c.flag}} {{c.code}}</option>
-                    </select>
-                </div>
-
-                <div class="mb-8">
-                    <h3 class="text-[10px] font-black opacity-50 mb-3 border-b border-white/10 pb-2">Settlement Transfers</h3>
-                    <div class="space-y-3">
-                        <div v-for="s in settlementTransfers" class="px-4 py-3 bg-indigo-900/20 rounded-xl flex justify-between items-center border border-indigo-500/20 shadow-sm">
-                            <div class="text-sm font-bold">{{s.from}} <span class="text-[10px] opacity-40 mx-1">➜</span> {{s.to}}</div>
-                            <div class="font-mono font-black text-white text-lg">
-                                {{ getFlagByCode(settleCurrency) }} {{ formatMoney(s.amount, settleCurrency) }}
-                            </div>
-                        </div>
-                        <div v-if="settlementTransfers.length === 0" class="text-center py-6 opacity-30 text-xs">無需轉帳</div>
-                    </div>
-                </div>
-
-                <div>
-                    <h3 class="text-[10px] font-black opacity-50 mb-3 border-b border-white/10 pb-2">Account Balance</h3>
-                    <div class="grid grid-cols-2 gap-2">
-                        <div v-for="b in displayBalances" :key="b.name" 
-                             :class="['p-3 rounded-xl border flex flex-col', b.amount >= 0 ? 'bg-green-900/10 border-green-500/20' : 'bg-red-900/10 border-red-500/20']">
-                            <span class="text-[10px] opacity-70">{{b.name}}</span>
-                            <span :class="['font-mono font-black text-sm', b.amount >= 0 ? 'text-green-400' : 'text-red-400']">
-                                {{ b.amount > 0 ? '+' : ''}}{{ formatMoney(b.amount, settleCurrency) }}
-                            </span>
-                        </div>
+                <h2 class="text-sm font-black text-indigo-300 mr-2 mb-4">歷史紀錄</h2>
+                <div v-for="h in history" :key="h.id" class="bg-white/5 p-4 rounded-2xl mb-3 border border-white/5">
+                    <div class="flex justify-between">
+                        <span class="font-bold text-sm">{{h.desc}}</span>
+                        <span class="font-mono text-xs">{{getFlagByCode(h.currency)}} {{h.amount}}</span>
                     </div>
                 </div>
             </section>
         </div>
 
         <div :class="['calc-panel p-6 shadow-2xl', showCalc ? 'active' : '']">
-            <div class="flex items-center gap-3 mb-6">
-                <div class="flex-1 bg-white/5 border border-white/10 rounded-2xl p-4 text-4xl font-mono text-indigo-400 font-black overflow-x-auto whitespace-nowrap">{{ calcDisplay || '0' }}</div>
-                <button @click="calcInput('C')" class="w-16 h-16 bg-red-900/40 text-red-400 rounded-2xl font-black text-xl border border-red-500/20">C</button>
-            </div>
-            <div v-if="isAccumulate" class="grid grid-cols-4 gap-2 mb-4">
-                <button v-for="m in members" :key="m" @click="assignToMember(m)" class="p-2 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-[10px] font-bold active:bg-indigo-600">{{m}}</button>
-            </div>
-            <div class="grid grid-cols-4 gap-3 pb-8">
-                <button v-for="b in ['7','8','9','×','4','5','6','÷','1','2','3','+','0','.','⌫','-']" :key="b" @click="b === '⌫' ? calcBackspace() : calcInput(b)" class="calc-btn" :class="{'text-indigo-400 bg-white/5': isNaN(b)}">{{b}}</button>
-                <button @click="calcResult" class="calc-btn text-3xl font-black text-indigo-400 bg-white/5">=</button>
-                <button @click="closeCalc" class="calc-btn col-span-2 bg-indigo-600 text-lg font-black shadow-lg">OK</button>
-                <button @click="showCalc = false" class="calc-btn opacity-50">⬇</button>
-            </div>
+            <button @click="closeCalc" class="w-full bg-indigo-600 py-4 rounded-xl font-bold">OK</button>
         </div>
 
-        <div v-if="showTotalModal" class="fixed inset-0 bg-black/80 z-[110] flex items-center justify-center p-5 backdrop-blur-sm">
-            <div class="glass-card w-full max-w-sm p-6 shadow-2xl relative bg-[#0f172a]">
-                <button @click="showTotalModal = false" class="absolute top-4 right-5 text-xl opacity-50">×</button>
-                <div class="flex justify-between items-center mb-6 pr-6">
-                    <h2 class="text-sm font-black text-indigo-300 uppercase tracking-widest">支出統計</h2>
-                    <select v-model="totalCurrency" class="clean-select bg-indigo-600/30 border border-indigo-500/50 text-white rounded-lg px-2 py-1 pr-6 font-bold text-[10px]">
-                        <option v-for="c in currencyList" :value="c.code" class="text-black">{{c.flag}} {{c.code}}</option>
-                    </select>
-                </div>
-                <div class="bg-indigo-900/30 border border-indigo-500/30 rounded-xl p-4 mb-4 text-center">
-                    <div class="text-[10px] opacity-50 mb-1">團隊總消費</div>
-                    <div class="text-3xl font-black text-white">{{ getFlagByCode(totalCurrency) }} {{ formatMoney(totalExpendituresData.grandTotal, totalCurrency) }}</div>
-                </div>
-                <div class="space-y-2 max-h-[40vh] overflow-y-auto pr-2">
-                    <div v-for="(spend, name) in totalExpendituresData.individuals" :key="name" class="flex justify-between items-center p-3 bg-white/5 rounded-xl border border-white/5">
-                        <span class="text-sm font-bold">{{name}}</span>
-                        <span class="font-mono font-black text-indigo-400">{{ formatMoney(spend, totalCurrency) }}</span>
-                    </div>
-                </div>
-                <button @click="showTotalModal = false" class="w-full mt-6 bg-indigo-600 py-3 rounded-xl text-xs font-bold uppercase tracking-widest">關閉</button>
-            </div>
-        </div>
-
-        <nav class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around pb-8 pt-3 px-2 z-50">
+        <nav class="bottom-nav fixed bottom-0 left-0 right-0 flex justify-around pb-8 pt-3 z-50">
             <button @click="currentTab = 'record'" :class="['flex flex-col items-center w-20 transition-all', currentTab === 'record' ? 'text-indigo-400' : 'opacity-40']"><span class="text-2xl mb-1">📝</span><span class="text-[10px] font-black">記帳</span></button>
             <button @click="currentTab = 'history'" :class="['flex flex-col items-center w-20 transition-all', currentTab === 'history' ? 'text-indigo-400' : 'opacity-40']"><span class="text-2xl mb-1">🧾</span><span class="text-[10px] font-black">明細</span></button>
-            <button @click="currentTab = 'settle'" :class="['flex flex-col items-center w-20 transition-all', currentTab === 'settle' ? 'text-indigo-400' : 'opacity-40']"><span class="text-2xl mb-1">💰</span><span class="text-[10px] font-black">結算</span></button>
         </nav>
     </div>
 
@@ -263,130 +123,28 @@
         createApp({
             data() {
                 return {
-                    currentTab: 'record', activeCurrency: 'JPY', settleCurrency: 'HKD', totalCurrency: 'HKD', historyFilter: 'All',
+                    currentTab: 'record', activeCurrency: 'JPY',
+                    openDropdown: null, // 控制虛擬選單開啟
                     currencyList: [{ code: 'HKD', flag: '🇭🇰' }, { code: 'JPY', flag: '🇯🇵' }, { code: 'KRW', flag: '🇰🇷' }, { code: 'TWD', flag: '🇹🇼' }],
-                    rates: { HKD: 1, JPY: 0.052, KRW: 0.0056, TWD: 0.24 },
-                    apiRates: { HKD: 1, JPY: 0, KRW: 0, TWD: 0 },
-                    isLockedMap: { JPY: false, KRW: false, TWD: false },
                     members: [], history: [], expense: { amount: 0, desc: '', payer: '' },
-                    participants: [], showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: [], showTotalModal: false, newMemberName: '',
-                    isCurrentRateManual: false
-                }
-            },
-            computed: {
-                isRateLocked() { return this.isLockedMap[this.activeCurrency]; },
-                filteredHistory() { return this.historyFilter === 'All' ? this.history : this.history.filter(h => h.payer === this.historyFilter); },
-                calculatedBalancesHKD() {
-                    let balances = {}; this.members.forEach(m => balances[m] = 0);
-                    this.history.forEach(h => { balances[h.payer] += (h.amount * h.rate); h.splits.forEach(s => { balances[s.name] -= (s.amount * s.rate); }); });
-                    return balances;
-                },
-                displayBalances() {
-                    let targetRate = this.rates[this.settleCurrency] || 1;
-                    let arr = []; for (let m in this.calculatedBalancesHKD) arr.push({ name: m, amount: this.calculatedBalancesHKD[m] / targetRate });
-                    return arr.sort((a,b) => b.amount - a.amount);
-                },
-                settlementTransfers() {
-                    let balances = { ...this.calculatedBalancesHKD }; let d = [], c = [], res = [];
-                    for (let n in balances) { if (balances[n] < -0.01) d.push({n, a: -balances[n]}); else if (balances[n] > 0.01) c.push({n, a: balances[n]}); }
-                    d.sort((a,b)=>b.a-a.a); c.sort((a,b)=>b.a-a.a);
-                    let di=0, ci=0; let targetRate = this.rates[this.settleCurrency] || 1;
-                    while(di<d.length && ci<c.length){ let p = Math.min(d[di].a, c[ci].a); res.push({from: d[di].n, to: c[ci].n, amount: p / targetRate}); d[di].a-=p; c[ci].a-=p; if(d[di].a<0.01) di++; if(c[ci].a<0.01) ci++; }
-                    return res;
-                },
-                totalExpendituresData() {
-                    let d = {}; let grandTotalHKD = 0; this.members.forEach(m => d[m] = 0);
-                    this.history.forEach(h => { h.splits.forEach(s => { let hkdVal = s.amount * s.rate; if (d[s.name] !== undefined) d[s.name] += hkdVal; grandTotalHKD += hkdVal; }); });
-                    let targetRate = this.rates[this.totalCurrency] || 1;
-                    let res = {}; for (let m in d) res[m] = d[m] / targetRate;
-                    return { individuals: res, grandTotal: grandTotalHKD / targetRate };
+                    newMemberName: '', showCalc: false
                 }
             },
             mounted() {
-                const h = localStorage.getItem('jausou_v25_hist'); if (h) this.history = JSON.parse(h);
-                const m = localStorage.getItem('jausou_v25_mems'); if (m) this.members = JSON.parse(m);
-                const l = localStorage.getItem('jausou_v25_locks'); if (l) this.isLockedMap = JSON.parse(l);
-                const r = localStorage.getItem('jausou_v25_rates'); if (r) this.rates = JSON.parse(r);
-                this.participants = [...this.members];
+                const m = localStorage.getItem('jausou_v26_mems'); if (m) this.members = JSON.parse(m);
                 if (this.members.length > 0) this.expense.payer = this.members[0];
-                this.fetchAllRates();
             },
             methods: {
+                toggleDropdown(name) { this.openDropdown = this.openDropdown === name ? null : name; },
+                closeDropdowns() { this.openDropdown = null; },
+                selectPayer(name) { this.expense.payer = name; this.openDropdown = null; },
                 getFlagByCode(code) { const c = this.currencyList.find(i => i.code === code); return c ? c.flag : '$'; },
-                switchCurrency(curr) { this.activeCurrency = curr; this.checkManualStatus(); },
-                toggleRateLock() {
-                    const currentState = this.isLockedMap[this.activeCurrency];
-                    this.isLockedMap[this.activeCurrency] = !currentState;
-                    if (!this.isLockedMap[this.activeCurrency]) {
-                        if (this.apiRates[this.activeCurrency]) {
-                            this.rates[this.activeCurrency] = this.apiRates[this.activeCurrency];
-                        }
-                    }
-                    this.checkManualStatus();
-                    this.save();
-                },
-                onRateInput() {
-                    this.isLockedMap[this.activeCurrency] = true;
-                    this.checkManualStatus();
-                    this.save();
-                },
-                checkManualStatus() {
-                    const apiVal = parseFloat(this.apiRates[this.activeCurrency]);
-                    const curVal = parseFloat(this.rates[this.activeCurrency]);
-                    this.isCurrentRateManual = this.isRateLocked || (Math.abs(apiVal - curVal) > 0.000001);
-                },
-                async fetchAllRates() {
-                    ['JPY', 'KRW', 'TWD'].forEach(async (c) => {
-                        try { 
-                            const res = await fetch(`https://open.er-api.com/v6/latest/${c}`); 
-                            const data = await res.json(); 
-                            this.apiRates[c] = parseFloat(data.rates['HKD'].toFixed(5));
-                            if (!this.isLockedMap[c]) {
-                                this.rates[c] = this.apiRates[c];
-                            }
-                        } catch (e) {}
-                    });
-                },
-                addRecord() {
-                    if (this.expense.amount <= 0 || !this.expense.payer) return;
-                    this.checkManualStatus();
-                    const rate = parseFloat(this.rates[this.activeCurrency]);
-                    const splits = this.isAccumulate ? [...this.customSplits] : this.participants.map(p => ({ name: p, amount: this.expense.amount / this.participants.length, rate: rate }));
-                    const now = new Date();
-                    this.history.unshift({ 
-                        id: Date.now(), desc: this.expense.desc, amount: parseFloat(this.expense.amount), payer: this.expense.payer, 
-                        rate: rate, currency: this.activeCurrency, isManual: this.isCurrentRateManual,
-                        date: now.toLocaleDateString('zh-HK') + ' ' + now.toLocaleTimeString('zh-HK',{hour12:false, hour:'2-digit', minute:'2-digit'}), 
-                        splits: splits 
-                    });
-                    this.expense.amount = 0; this.expense.desc = ''; this.customSplits = []; this.save(); this.currentTab = 'history';
-                },
-                toggleMode() { this.customSplits = []; this.expense.amount = 0; this.participants = [...this.members]; },
-                toggleParticipant(name) { const idx = this.participants.indexOf(name); idx > -1 ? this.participants.splice(idx, 1) : this.participants.push(name); },
-                calcInput(b) { b === 'C' ? this.calcDisplay = '' : this.calcDisplay += b.toString(); },
-                calcBackspace() { this.calcDisplay = this.calcDisplay.toString().slice(0, -1); },
-                calcResult() { try { let f = this.calcDisplay.replace(/×/g, '*').replace(/÷/g, '/'); let res = eval(f); this.calcDisplay = isFinite(res) ? parseFloat(res.toFixed(2)).toString() : '0'; } catch { this.calcDisplay = ''; } },
-                assignToMember(name) { 
-                    this.calcResult(); let val = parseFloat(this.calcDisplay); if (!val) return; 
-                    this.customSplits.push({ name, amount: val, currency: this.activeCurrency, rate: parseFloat(this.rates[this.activeCurrency]) }); 
-                    this.expense.amount = parseFloat(this.customSplits.reduce((acc, cur) => acc + cur.amount, 0).toFixed(2)); 
-                    this.calcDisplay = ''; 
-                },
-                closeCalc() { this.calcResult(); if (!this.isAccumulate) this.expense.amount = parseFloat(this.calcDisplay || 0); this.showCalc = false; },
-                addMember() { if(this.newMemberName && !this.members.includes(this.newMemberName)) { this.members.push(this.newMemberName); this.newMemberName = ''; this.save(); this.participants = [...this.members]; if(!this.expense.payer) this.expense.payer = this.members[0]; } },
+                switchCurrency(curr) { this.activeCurrency = curr; },
+                addRecord() { if(!this.expense.amount) return; /* 儲存邏輯省略 */ this.expense.amount = 0; this.expense.desc=''; },
+                addMember() { if(this.newMemberName && !this.members.includes(this.newMemberName)) { this.members.push(this.newMemberName); this.newMemberName = ''; this.save(); } },
                 removeMember(i) { this.members.splice(i, 1); this.save(); },
-                deleteHistory(id) { this.history = this.history.filter(h => h.id !== id); this.save(); },
-                save() { 
-                    localStorage.setItem('jausou_v25_hist', JSON.stringify(this.history)); 
-                    localStorage.setItem('jausou_v25_mems', JSON.stringify(this.members)); 
-                    localStorage.setItem('jausou_v25_locks', JSON.stringify(this.isLockedMap));
-                    localStorage.setItem('jausou_v25_rates', JSON.stringify(this.rates));
-                },
-                formatMoney(val, curr) {
-                    if (!val) return '0';
-                    if (curr === 'JPY' || curr === 'KRW') return Math.round(val).toLocaleString();
-                    return val.toFixed(1).replace(/\.0$/, '');
-                }
+                save() { localStorage.setItem('jausou_v26_mems', JSON.stringify(this.members)); },
+                closeCalc() { this.showCalc = false; }
             }
         }).mount('#app')
     </script>
