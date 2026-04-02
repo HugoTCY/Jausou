@@ -4,7 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="theme-color" content="#1e293b">
-    <title>找數 v24.9</title>
+    <title>找數 v24.9.1</title>
     
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
@@ -116,14 +116,17 @@
                     <div v-for="h in filteredHistory" :key="h.id" class="bg-white/5 p-4 rounded-2xl border border-white/10 relative">
                         <button @click="deleteHistory(h.id)" class="absolute top-4 right-4 text-xs opacity-40">🗑️</button>
                         <div class="flex justify-between items-start mb-2 pr-8">
-                            <div>
+                            <div class="flex-1">
                                 <span class="text-sm font-bold block">{{h.desc || '項目'}}</span>
                                 <span class="text-[10px] opacity-40">{{h.date}} · {{h.payer}} 付</span>
-                                <div class="text-[10px] text-indigo-300 opacity-80 mt-1 flex flex-wrap gap-x-2 gap-y-1">
-                                    <span class="opacity-50">分攤：</span>
-                                    <span v-for="(s, idx) in h.splits" :key="idx" class="bg-white/5 px-1.5 py-0.5 rounded border border-white/5">
-                                        {{s.name}} ({{ formatMoney(s.amount, h.currency) }})
-                                    </span>
+                                
+                                <div class="text-[10px] text-indigo-300 opacity-80 mt-2 flex">
+                                    <span class="opacity-50 shrink-0 mr-2">分攤：</span>
+                                    <div class="flex flex-col gap-1">
+                                        <span v-for="(s, idx) in h.splits" :key="idx" class="font-mono">
+                                            {{s.name}} ({{ formatMoney(s.amount, h.currency) }})
+                                        </span>
+                                    </div>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -193,7 +196,8 @@
                 <button v-for="b in ['1','2','3']" @click="calcInput(b)" class="calc-btn">{{b}}</button>
                 <button @click="calcInput('+')" class="calc-btn bg-white/5 text-indigo-400">+</button>
                 <button @click="calcInput('0')" class="calc-btn">0</button>
-                <button @click="calcInput('.')" class="calc-btn">{{b === '.' ? '.' : '0'}}</button> <button @click="calcBackspace" class="calc-btn bg-white/10">⌫</button>
+                <button @click="calcInput('.')" class="calc-btn">.</button>
+                <button @click="calcBackspace" class="calc-btn bg-white/10">⌫</button>
                 <button @click="calcInput('-')" class="calc-btn bg-white/5 text-indigo-400">-</button>
                 <button @click="calcResult" class="calc-btn text-3xl font-black text-indigo-400 bg-white/5">=</button>
                 <button @click="closeCalc" class="calc-btn col-span-2 bg-indigo-600 text-lg font-black shadow-lg">OK</button>
