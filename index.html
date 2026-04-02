@@ -30,7 +30,6 @@
         input:checked + .slider { background-color: #6366f1; }
         input:checked + .slider:before { transform: translateX(22px); }
         
-        /* Nav Bar styling */
         .bottom-nav { background: rgba(15, 23, 42, 0.95); backdrop-filter: blur(10px); }
     </style>
 </head>
@@ -119,14 +118,22 @@
             <section class="glass-card p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-[12px] font-black opacity-80 uppercase tracking-widest text-indigo-300">歷史紀錄</h2>
-                    <button @click="showTotalModal = true" class="px-3 py-1.5 bg-indigo-600/30 border border-indigo-500/50 rounded-lg text-[10px] font-bold text-white hover:bg-indigo-600 transition">
-                        📊 查看各人總支出
-                    </button>
+                    
+                    <div class="flex items-center gap-2">
+                        <select v-model="historyFilter" class="text-[10px] p-1.5 px-2 rounded-lg bg-black/30 border border-white/10 font-bold opacity-80">
+                            <option value="All">All Payers</option>
+                            <option v-for="m in members" :value="m">{{m}}</option>
+                        </select>
+                        
+                        <button @click="showTotalModal = true" class="px-2 py-1.5 bg-indigo-600/30 border border-indigo-500/50 rounded-lg text-[10px] font-bold text-white hover:bg-indigo-600 transition">
+                            📊 總支出
+                        </button>
+                    </div>
                 </div>
 
-                <div v-if="history.length === 0" class="text-center py-10 opacity-30 text-sm">暫無紀錄</div>
+                <div v-if="filteredHistory.length === 0" class="text-center py-10 opacity-30 text-sm">暫無紀錄</div>
                 <div class="space-y-4">
-                    <div v-for="(h, i) in history" :key="i" class="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm relative">
+                    <div v-for="(h, i) in filteredHistory" :key="i" class="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm relative">
                         <div class="flex justify-between items-start mb-2">
                             <div>
                                 <span class="text-sm font-bold block">{{h.desc || '未命名項目'}}</span>
@@ -138,7 +145,7 @@
                             <span class="text-[9px] opacity-40 w-full mb-1">分攤人:</span>
                             <span v-for="s in h.splits" class="text-[10px] opacity-80 bg-black/20 px-2 py-0.5 rounded">{{s.name}} ({{s.amount.toFixed(0)}})</span>
                         </div>
-                        <button @click="deleteHistory(i)" class="absolute bottom-4 right-4 text-[12px] text-red-400/50 hover:text-red-400">🗑️</button>
+                        <button @click="deleteHistory(h.originalIndex)" class="absolute bottom-4 right-4 text-[12px] text-red-400/50 hover:text-red-400">🗑️</button>
                     </div>
                 </div>
             </section>
@@ -243,13 +250,13 @@
         createApp({
             data() {
                 return {
-                    currentTab: 'record', // 'record', 'history', 'settle'
+                    currentTab: 'record',
                     foreignCurrency: 'JPY', exchangeRate: 0.052, isAutoRate: true,
                     members: [], newMemberName: '', history: [],
                     expense: { amount: 0, desc: '', payer: '' },
                     participants: [], showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: [],
-                    displayCurrency: 'HKD', // 用於控制 History 彈窗同 Settle 嘅顯示幣值
-                    showTotalModal: false
+                    displayCurrency: 'HKD', showTotalModal: false,
+                    historyFilter: 'All' // 加回 Filter 狀態
                 }
             },
             mounted() {
@@ -279,11 +286,9 @@
                     const now = new Date();
                     const record = { desc: this.expense.desc, amount: this.expense.amount, payer: this.expense.payer, rate: parseFloat(this.exchangeRate), currency: this.foreignCurrency, date: now.toLocaleDateString('zh-HK', {month:'2-digit', day:'2-digit'}) + ' ' + now.toLocaleTimeString('zh-HK', {hour12:false, hour:'2-digit', minute:'2-digit'}), splits: splits };
                     this.history.unshift(record); this.expense.amount = 0; this.expense.desc = ''; this.customSplits = []; this.save();
-                    
-                    // 新增完自動跳去 History 睇
                     this.currentTab = 'history';
                 },
-                deleteHistory(i) { this.history.splice(i, 1); this.save(); },
+                deleteHistory(originalIndex) { this.history.splice(originalIndex, 1); this.save(); }, // 修復以 originalIndex 刪除
                 save() { localStorage.setItem('jausou_v24_hist', JSON.stringify(this.history)); localStorage.setItem('jausou_v24_mems', JSON.stringify(this.members)); },
                 async fetchRate() {
                     if (!this.isAutoRate) return;
@@ -295,34 +300,34 @@
                 }
             },
             computed: {
-                // 核心計算引擎：統一計算所有成員的 總開支(Spent) 同 餘額(Balance) [以 HKD 為基礎]
+                // 加回過濾邏輯，並保存原本嘅 index 方便正確刪除
+                filteredHistory() {
+                    let list = this.history.map((h, idx) => ({ ...h, originalIndex: idx }));
+                    if (this.historyFilter !== 'All') list = list.filter(h => h.payer === this.historyFilter);
+                    return list;
+                },
                 rawBalances() {
                     let data = {};
                     this.members.forEach(m => data[m] = { balance: 0, spent: 0 });
                     this.history.forEach(h => {
-                        // 確保歷史紀錄嘅人就算被 delete 咗名單都唔會報錯
                         if(!data[h.payer]) data[h.payer] = { balance: 0, spent: 0 };
-                        data[h.payer].balance += (h.amount * h.rate); // 幫人俾咗錢，餘額 +
-
+                        data[h.payer].balance += (h.amount * h.rate); 
                         h.splits.forEach(s => {
                             if(!data[s.name]) data[s.name] = { balance: 0, spent: 0 };
-                            data[s.name].balance -= (s.amount * h.rate); // 自己食咗，餘額 -
-                            data[s.name].spent += (s.amount * h.rate);   // 紀錄自己實際消耗
+                            data[s.name].balance -= (s.amount * h.rate);
+                            data[s.name].spent += (s.amount * h.rate);
                         });
                     });
                     return data;
                 },
-                // 轉換為顯示用餘額 (支援 HKD / 外幣 切換)
                 memberBalancesList() {
                     let result = {};
                     for (let m in this.rawBalances) {
                         let val = this.rawBalances[m].balance;
-                        // 如果揀外幣，就將 HKD 除返目前匯率
                         result[m] = { val: this.displayCurrency === 'HKD' ? val : (val / this.exchangeRate) };
                     }
                     return result;
                 },
-                // 轉換為顯示用總支出 (支援 HKD / 外幣 切換)
                 totalExpenditures() {
                     let result = {};
                     for (let m in this.rawBalances) {
@@ -331,7 +336,6 @@
                     }
                     return result;
                 },
-                // 計算最後邊個俾錢邊個
                 settlementTransfers() {
                     let d = [], c = [], res = [];
                     for (let n in this.memberBalancesList) { 
@@ -339,7 +343,6 @@
                         if (val < -0.01) d.push({n, a: -val}); 
                         else if (val > 0.01) c.push({n, a: val}); 
                     }
-                    // 貪婪演算法：金額大嘅優先互相抵銷
                     d.sort((a,b) => b.a - a.a);
                     c.sort((a,b) => b.a - a.a);
                     
