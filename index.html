@@ -18,7 +18,7 @@
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #1e293b; color: white; -webkit-tap-highlight-color: transparent; }
         .app-title { font-weight: 900; background: linear-gradient(to bottom, #ffffff 0%, #818cf8 100%); -webkit-background-clip: text; -webkit-text-fill-color: transparent; filter: drop-shadow(0 0 8px rgba(99,102,241,0.5)); letter-spacing: 4px; }
         .glass-card { background: rgba(255, 255, 255, 0.1); backdrop-filter: blur(20px); border: 1px solid rgba(255, 255, 255, 0.15); border-radius: 24px; }
-        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 2px solid #6366f1; border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s ease; transform: translateY(100%); max-height: 90vh; overflow-y: auto; }
+        .calc-panel { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 2px solid #6366f1; border-radius: 30px 30px 0 0; z-index: 100; transition: transform 0.3s ease; transform: translateY(100%); max-height: 95vh; overflow-y: auto; }
         .calc-panel.active { transform: translateY(0); }
         .calc-btn { background: rgba(255,255,255,0.05); height: 50px; display: flex; align-items: center; justify-content: center; border-radius: 12px; font-weight: bold; }
         input, select { background: rgba(255,255,255,0.1) !important; color: white !important; border: 1px solid rgba(255,255,255,0.1) !important; outline: none; }
@@ -118,13 +118,11 @@
             <section class="glass-card p-6">
                 <div class="flex justify-between items-center mb-6">
                     <h2 class="text-[12px] font-black opacity-80 uppercase tracking-widest text-indigo-300">歷史紀錄</h2>
-                    
                     <div class="flex items-center gap-2">
                         <select v-model="historyFilter" class="text-[10px] p-1.5 px-2 rounded-lg bg-black/30 border border-white/10 font-bold opacity-80">
                             <option value="All">All Payers</option>
                             <option v-for="m in members" :value="m">{{m}}</option>
                         </select>
-                        
                         <button @click="showTotalModal = true" class="px-2 py-1.5 bg-indigo-600/30 border border-indigo-500/50 rounded-lg text-[10px] font-bold text-white hover:bg-indigo-600 transition">
                             📊 總支出
                         </button>
@@ -133,8 +131,10 @@
 
                 <div v-if="filteredHistory.length === 0" class="text-center py-10 opacity-30 text-sm">暫無紀錄</div>
                 <div class="space-y-4">
-                    <div v-for="(h, i) in filteredHistory" :key="i" class="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm relative">
-                        <div class="flex justify-between items-start mb-2">
+                    <div v-for="(h, i) in filteredHistory" :key="i" class="bg-white/5 p-4 rounded-2xl border border-white/10 shadow-sm relative overflow-hidden">
+                        <button @click="deleteHistory(h.originalIndex)" class="absolute top-4 right-4 text-xs p-1 opacity-40 hover:opacity-100 hover:text-red-400 z-10">🗑️</button>
+                        
+                        <div class="flex justify-between items-start mb-2 pr-8">
                             <div>
                                 <span class="text-sm font-bold block">{{h.desc || '未命名項目'}}</span>
                                 <span class="text-[10px] opacity-40">{{h.date}} · <span class="text-indigo-300 font-bold">{{h.payer}}</span> 先付</span>
@@ -145,7 +145,6 @@
                             <span class="text-[9px] opacity-40 w-full mb-1">分攤人:</span>
                             <span v-for="s in h.splits" class="text-[10px] opacity-80 bg-black/20 px-2 py-0.5 rounded">{{s.name}} ({{s.amount.toFixed(0)}})</span>
                         </div>
-                        <button @click="deleteHistory(h.originalIndex)" class="absolute bottom-4 right-4 text-[12px] text-red-400/50 hover:text-red-400">🗑️</button>
                     </div>
                 </div>
             </section>
@@ -216,17 +215,25 @@
 
         <div :class="['calc-panel p-6 shadow-2xl', showCalc ? 'active' : '']">
             <div class="flex justify-between items-center mb-6">
-                <div class="text-4xl font-mono text-indigo-400 font-black">{{ calcDisplay || '0' }}</div>
+                <div class="text-4xl font-mono text-indigo-400 font-black overflow-x-auto whitespace-nowrap">{{ calcDisplay || '0' }}</div>
                 <button @click="showCalc = false" class="text-[10px] border border-white/10 px-4 py-2 rounded-full font-black opacity-40">DONE</button>
             </div>
+            
             <div v-if="isAccumulate" class="mb-6">
                 <div class="grid grid-cols-3 gap-2">
                     <button v-for="m in members" :key="m" @click="assignToMember(m)" class="p-3 bg-indigo-600/20 border border-indigo-500/30 rounded-xl text-xs font-bold active:bg-indigo-600">{{m}}</button>
                 </div>
             </div>
+
             <div class="grid grid-cols-4 gap-2">
-                <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','0','.','C','+']" @click="calcInput(b)" class="calc-btn text-xl">{{b}}</button>
-                <button @click="calcResult" class="calc-btn col-span-2 text-indigo-400 text-3xl">=</button>
+                <button v-for="b in ['7','8','9','/','4','5','6','*','1','2','3','-','0','.']" @click="calcInput(b)" class="calc-btn text-xl">{{b}}</button>
+                
+                <button @click="calcBackspace" class="calc-btn bg-white/10 text-lg">⌫</button>
+                
+                <button @click="calcInput('C')" class="calc-btn bg-red-900/20 text-red-400 text-lg">C</button>
+                
+                <button @click="calcInput('+')" class="calc-btn text-xl">+</button>
+                <button @click="calcResult" class="calc-btn col-span-1 text-indigo-400 text-3xl">=</button>
                 <button @click="closeCalc" class="calc-btn ok col-span-2 bg-indigo-600 font-black text-lg">OK</button>
             </div>
         </div>
@@ -255,8 +262,7 @@
                     members: [], newMemberName: '', history: [],
                     expense: { amount: 0, desc: '', payer: '' },
                     participants: [], showCalc: false, calcDisplay: '', isAccumulate: false, customSplits: [],
-                    displayCurrency: 'HKD', showTotalModal: false,
-                    historyFilter: 'All' // 加回 Filter 狀態
+                    displayCurrency: 'HKD', showTotalModal: false, historyFilter: 'All'
                 }
             },
             mounted() {
@@ -274,6 +280,7 @@
                 toggleMode() { this.customSplits = []; this.expense.amount = 0; this.participants = [...this.members]; },
                 toggleParticipant(name) { const idx = this.participants.indexOf(name); idx > -1 ? this.participants.splice(idx, 1) : this.participants.push(name); },
                 calcInput(b) { b === 'C' ? this.calcDisplay = '' : this.calcDisplay += b; },
+                calcBackspace() { this.calcDisplay = this.calcDisplay.toString().slice(0, -1); },
                 calcResult() { try { if(!this.calcDisplay) return; let res = eval(this.calcDisplay.replace(/×/g, '*').replace(/÷/g, '/')); this.calcDisplay = isFinite(res) ? parseFloat(res.toFixed(2)).toString() : '0'; } catch { this.calcDisplay = ''; } },
                 assignToMember(name) { this.calcResult(); let val = parseFloat(this.calcDisplay); if (isNaN(val) || val === 0) return; this.customSplits.push({ name, amount: val }); this.expense.amount = parseFloat(this.customSplits.reduce((acc, cur) => acc + cur.amount, 0).toFixed(2)); this.calcDisplay = ''; },
                 closeCalc() { this.calcResult(); if (!this.isAccumulate) this.expense.amount = parseFloat(this.calcDisplay || 0); this.showCalc = false; },
@@ -288,7 +295,7 @@
                     this.history.unshift(record); this.expense.amount = 0; this.expense.desc = ''; this.customSplits = []; this.save();
                     this.currentTab = 'history';
                 },
-                deleteHistory(originalIndex) { this.history.splice(originalIndex, 1); this.save(); }, // 修復以 originalIndex 刪除
+                deleteHistory(originalIndex) { this.history.splice(originalIndex, 1); this.save(); },
                 save() { localStorage.setItem('jausou_v24_hist', JSON.stringify(this.history)); localStorage.setItem('jausou_v24_mems', JSON.stringify(this.members)); },
                 async fetchRate() {
                     if (!this.isAutoRate) return;
@@ -300,7 +307,6 @@
                 }
             },
             computed: {
-                // 加回過濾邏輯，並保存原本嘅 index 方便正確刪除
                 filteredHistory() {
                     let list = this.history.map((h, idx) => ({ ...h, originalIndex: idx }));
                     if (this.historyFilter !== 'All') list = list.filter(h => h.payer === this.historyFilter);
