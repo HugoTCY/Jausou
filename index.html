@@ -45,7 +45,7 @@
             </section>
 
             <section class="glass p-5 flex items-center justify-between">
-                <div class="text-xs font-black">匯率 (1 {{activeCurr}} ➔ HKD) <span v-if="loadingRate" class="text-[10px] text-indigo-400 ml-1">更新中...</span></div>
+                <div class="text-xs font-black">匯率 (1 {{activeCurr}} ➔ HKD)</div>
                 <div class="flex items-center gap-3">
                     <span @click="toggleRateLock" class="text-xl cursor-pointer">{{ rateLocked ? '🔒' : '🔓' }}</span>
                     <input type="number" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2.5 rounded-xl text-right font-mono text-sm font-bold outline-none focus:border-indigo-500">
@@ -151,10 +151,16 @@
                     <button @click="clearAllHistory" class="text-[10px] text-red-400 border border-red-400/30 px-2 py-1 rounded bg-red-400/10 font-bold active:bg-red-400/20">清除所有紀錄</button>
                     
                     <div class="flex items-center gap-2">
-                        <select v-model="historyFilterPayer" class="bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 px-2 py-1.5 rounded-lg outline-none appearance-none text-center min-w-[80px]">
-                            <option value="全部">全部付款人</option>
-                            <option v-for="m in members" :key="m" :value="m">{{m}}</option>
-                        </select>
+                        <div class="relative" @click.stop="showFilterMenu = !showFilterMenu">
+                            <button class="bg-indigo-500/20 text-indigo-300 text-xs font-bold border border-indigo-500/30 px-3 py-1.5 rounded-lg flex items-center gap-2 transition-colors active:bg-indigo-500/40">
+                                {{ historyFilterPayer === '全部' ? '全部付款人' : historyFilterPayer }}
+                                <span class="text-[8px] opacity-50">▼</span>
+                            </button>
+                            <div v-if="showFilterMenu" class="dropdown-box right-0 left-auto mt-2 min-w-[120px]">
+                                <div @click.stop="historyFilterPayer = '全部'; showFilterMenu = false" class="p-4 text-xs font-bold border-b border-white/5 hover:bg-indigo-600 active:bg-indigo-700 transition-colors">全部付款人</div>
+                                <div v-for="m in members" :key="m" @click.stop="historyFilterPayer = m; showFilterMenu = false" class="p-4 text-xs font-bold border-b border-white/5 hover:bg-indigo-600 active:bg-indigo-700 transition-colors">{{m}}</div>
+                            </div>
+                        </div>
                         <button @click="showTotalDetails = true" class="text-[11px] font-black text-indigo-300 bg-white/5 px-3 py-1.5 rounded-lg border border-white/10 active:bg-white/10">總支出</button>
                     </div>
                 </div>
@@ -193,9 +199,9 @@
                 <div class="flex justify-between items-center mb-8">
                     <h2 class="text-sm font-black text-indigo-300 tracking-widest uppercase">結算建議</h2>
                     <div class="relative">
-                        <button @click="showSettleMenu = !showSettleMenu" class="bg-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-500/30">{{settleCurr}} ▼</button>
-                        <div v-if="showSettleMenu" class="dropdown-box right-0 left-auto">
-                            <div v-for="c in currencies" :key="c.code" @click="settleCurr = c.code; showSettleMenu = false" class="p-3 text-xs font-bold border-b border-white/5">{{c.code}}</div>
+                        <button @click.stop="showSettleMenu = !showSettleMenu" class="bg-indigo-500/20 px-3 py-1.5 rounded-lg text-xs font-bold border border-indigo-500/30">{{settleCurr}} ▼</button>
+                        <div v-if="showSettleMenu" class="dropdown-box right-0 left-auto mt-2">
+                            <div v-for="c in currencies" :key="c.code" @click.stop="settleCurr = c.code; showSettleMenu = false" class="p-4 text-xs font-bold border-b border-white/5 hover:bg-indigo-600 active:bg-indigo-700 transition-colors">{{c.code}}</div>
                         </div>
                     </div>
                 </div>
@@ -203,7 +209,7 @@
                 <div class="space-y-3 mb-10">
                     <div v-for="(s, i) in transfers" :key="i" class="bg-indigo-500/10 p-4 rounded-xl flex justify-between items-center border border-indigo-500/20">
                         <span class="font-black text-sm"><span class="text-indigo-300">{{s.from}}</span> <span class="mx-2 opacity-50 text-[10px]">➔</span> <span class="text-white">{{s.to}}</span></span>
-                        <span class="font-mono font-black text-indigo-400 text-lg">{{ s.amount.toFixed(1) }}</span>
+                        <span class="font-mono font-black text-indigo-400 text-lg">{{ getFlag(settleCurr) }} {{ s.amount.toFixed(1) }}</span>
                     </div>
                     <div v-if="transfers.length === 0" class="text-center py-10 opacity-30 text-xs font-bold">目前無欠款！</div>
                 </div>
@@ -212,7 +218,7 @@
                     <p class="text-[10px] font-black opacity-30 uppercase mb-4 text-center tracking-widest">Account Balance ({{settleCurr}})</p>
                     <div v-for="(bal, name) in balances" :key="name" class="flex justify-between text-xs p-2 bg-white/5 rounded-lg mb-2">
                         <span class="font-bold opacity-80">{{name}}</span>
-                        <span :class="['font-mono font-black', bal >= 0.1 ? 'text-green-400' : (bal < -0.1 ? 'text-red-400' : 'opacity-20')]">{{ bal > 0 ? '+' : '' }}{{ bal.toFixed(1) }}</span>
+                        <span :class="['font-mono font-black', bal >= 0.1 ? 'text-green-400' : (bal < -0.1 ? 'text-red-400' : 'opacity-20')]">{{ bal > 0 ? '+' : '' }}{{ getFlag(settleCurr) }} {{ bal.toFixed(1) }}</span>
                     </div>
                 </div>
             </section>
@@ -231,7 +237,7 @@
                 <div class="space-y-3 mb-8">
                     <div v-for="(amt, name) in individualSpendings" :key="name" class="flex justify-between items-center border-b border-white/5 pb-2 text-xs">
                         <span class="font-bold opacity-70">{{name}}:</span>
-                        <span class="font-mono font-black text-indigo-200">{{ amt.toFixed(1) }}</span>
+                        <span class="font-mono font-black text-indigo-200">{{ getFlag(detailsCurr) }} {{ amt.toFixed(1) }}</span>
                     </div>
                 </div>
                 
@@ -257,14 +263,14 @@
                 return {
                     tab: 'record', 
                     activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
-                    rateLocked: false, manualRate: 0.051, loadingRate: false,
+                    rateLocked: false, manualRate: 0.051,
                     isPersonalMode: false, showCalc: false, showTotalDetails: false, calcInput: '',
                     tempMember: '',
                     members: ['a', 'b'], 
                     history: [],
-                    historyFilterPayer: '全部', // 明細篩選器狀態
+                    historyFilterPayer: '全部', 
                     bill: { total: 0, desc: '', payer: 'a', splitWith: [], splits: {} },
-                    showPayerMenu: false, showSettleMenu: false,
+                    showPayerMenu: false, showSettleMenu: false, showFilterMenu: false,
                     currencies: [
                         { code: 'HKD', rate: 1 }, 
                         { code: 'JPY', rate: 0.051 }, 
@@ -280,7 +286,6 @@
                 billTotal() {
                     return this.isPersonalMode ? Object.values(this.bill.splits).reduce((acc, curr) => acc + curr, 0) : (this.bill.total || 0);
                 },
-                // 明細頁面篩選用 computed
                 filteredHistory() {
                     if (this.historyFilterPayer === '全部') {
                         return this.history;
@@ -348,9 +353,11 @@
                 }
                 this.updateRateAuto();
                 this.resetRecord();
+                // 點擊空白處閂埋所有 dropdown menu
                 document.addEventListener('click', () => { 
                     this.showPayerMenu = false;
                     this.showSettleMenu = false; 
+                    this.showFilterMenu = false;
                 });
             },
             methods: {
@@ -393,31 +400,22 @@
                     this.rateLocked = !this.rateLocked;
                     this.updateRateAuto();
                 },
-                // 加入 API 獲取匯率 (鎖定時不執行)
                 async updateRateAuto() {
                     if (this.rateLocked) return;
                     if (this.activeCurr === 'HKD') {
                         this.manualRate = 1;
                         return;
                     }
-                    
-                    this.loadingRate = true;
                     try {
                         const currLower = this.activeCurr.toLowerCase();
-                        // 呼叫免費且無需 API Key 嘅 CDN 匯率服務
                         const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currLower}.json`);
                         const data = await res.json();
-                        
                         if (data && data[currLower] && data[currLower].hkd) {
-                            // 保留 5 個小數位
                             this.manualRate = Number(data[currLower].hkd.toFixed(5));
                         }
                     } catch (err) {
                         console.warn("API 獲取失敗，使用預設匯率", err);
-                        // 如果 Offline 或者 API 有問題，自動 Fallback 用你原本寫落嘅匯率
                         this.manualRate = this.currencies.find(c => c.code === this.activeCurr).rate;
-                    } finally {
-                        this.loadingRate = false;
                     }
                 },
                 handleMemberClick(m) {
@@ -503,7 +501,6 @@
                     this.save(); 
                     this.tab = 'history';
                 },
-                // 改用 timestamp (date) 做刪除 ID 避免 filter 後 index 錯位
                 deleteRecord(id) { 
                     if(confirm('確定要刪除這條紀錄嗎？')) {
                         const idx = this.history.findIndex(x => x.date === id);
@@ -520,7 +517,6 @@
                     }
                 },
                 save() { 
-                    // 升級 localStorage Key 確保唔會被舊數據撞爛
                     localStorage.setItem('js_h_v7_4', JSON.stringify(this.history)); 
                     localStorage.setItem('js_m_v7_4', JSON.stringify(this.members)); 
                 }
