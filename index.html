@@ -8,9 +8,7 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
-        /* 防閃爍保護罩：Vue 未 load 完之前隱藏內容，防 raw code 走光 */
         [v-cloak] { display: none !important; }
-        
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; }
         .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
         .btn-blue { background: #4f46e5; transition: all 0.2s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
@@ -279,17 +277,18 @@
                     historyFilterPayer: '全部', 
                     bill: { total: 0, desc: '', payer: 'a', splitWith: [], splits: {} },
                     showPayerMenu: false, showSettleMenu: false, showFilterMenu: false,
+                    // 加返合理嘅 Fallback 匯率，萬一斷網都唔會除以零死機
                     currencies: [
                         { code: 'HKD', rate: 1 }, 
-                        { code: 'JPY', rate: 0 }, 
-                        { code: 'KRW', rate: 0 }, 
-                        { code: 'TWD', rate: 0 }
+                        { code: 'JPY', rate: 0.051 }, 
+                        { code: 'KRW', rate: 0.0056 }, 
+                        { code: 'TWD', rate: 0.24 }
                     ]
                 }
             },
             computed: {
                 currentInputValue() {
-                    try { return parseFloat(eval(this.calcInput)) || 0; } catch { return 0; }
+                    try { return parseFloat(eval(this.calcInput)) || 0; } catch (e) { return 0; }
                 },
                 billTotal() {
                     return this.isPersonalMode ? Object.values(this.bill.splits).reduce((acc, curr) => acc + curr, 0) : (this.bill.total || 0);
@@ -303,23 +302,27 @@
                 individualSpendings() {
                     let res = {}; 
                     this.members.forEach(m => res[m] = 0);
-                    // 加咗 ?. 防呆，確保搵唔到時唔會出錯
-                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr)?.rate || 1;
+                    
+                    // 徹底清除太新嘅 Javascript 語法，確保舊手機 100% 運行順暢
+                    let target = this.currencies.find(c => c.code === this.detailsCurr);
+                    const targetRate = (target && target.rate) ? target.rate : 1;
+                    
                     this.history.forEach(h => {
                         for(let m in h.splits) {
-                            if(res[m] !== undefined) {
-                                if (h.currency === this.detailsCurr) {
-                                    res[m] += h.splits[m];
-                                } else {
-                                    res[m] += (h.splits[m] * h.rate) / targetRate;
-                                }
+                            if(res[m] === undefined) res[m] = 0; // 防呆：如果團友被刪除，依然會紀錄佢嘅帳
+                            if (h.currency === this.detailsCurr) {
+                                res[m] += h.splits[m];
+                            } else {
+                                res[m] += (h.splits[m] * h.rate) / targetRate;
                             }
                         }
                     });
                     return res;
                 },
                 groupTotalSpending() { 
-                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr)?.rate || 1;
+                    let target = this.currencies.find(c => c.code === this.detailsCurr);
+                    const targetRate = (target && target.rate) ? target.rate : 1;
+                    
                     return this.history.reduce((sum, h) => {
                         if (h.currency === this.detailsCurr) {
                             return sum + h.total;
@@ -331,15 +334,20 @@
                 balances() {
                     let b = {}; 
                     this.members.forEach(m => b[m] = 0);
-                    const targetRate = this.currencies.find(c => c.code === this.settleCurr)?.rate || 1;
+                    
+                    let target = this.currencies.find(c => c.code === this.settleCurr);
+                    const targetRate = (target && target.rate) ? target.rate : 1;
+                    
                     this.history.forEach(h => {
                         let billTotalTarget = h.currency === this.settleCurr ? h.total : (h.total * h.rate) / targetRate;
+                        
+                        if (b[h.payer] === undefined) b[h.payer] = 0; // 防呆：保留已刪除團友嘅紀錄
                         b[h.payer] += billTotalTarget;
+                        
                         for(let m in h.splits) {
-                            if(b[m] !== undefined) {
-                                let splitTarget = h.currency === this.settleCurr ? h.splits[m] : (h.splits[m] * h.rate) / targetRate;
-                                b[m] -= splitTarget;
-                            }
+                            let splitTarget = h.currency === this.settleCurr ? h.splits[m] : (h.splits[m] * h.rate) / targetRate;
+                            if (b[m] === undefined) b[m] = 0;
+                            b[m] -= splitTarget;
                         }
                     });
                     return b;
@@ -365,9 +373,9 @@
             },
             mounted() {
                 try {
-                    // 更新咗 key 防撞舊數據
-                    const h = localStorage.getItem('js_h_v7_7');
-                    const m = localStorage.getItem('js_m_v7_7');
+                    // 自動繼承返你 v7.7 嘅數據
+                    const h = localStorage.getItem('js_h_v7_8') || localStorage.getItem('js_h_v7_7');
+                    const m = localStorage.getItem('js_m_v7_8') || localStorage.getItem('js_m_v7_7');
                     if(h) this.history = JSON.parse(h) || [];
                     if(m) { 
                         let parsedM = JSON.parse(m); 
@@ -376,13 +384,11 @@
                         }
                     }
                 } catch (e) {
-                    console.error("數據讀取錯誤，重設為預設值", e);
-                    this.history = [];
-                    this.members = ['a', 'b'];
+                    console.warn("數據讀取錯誤", e);
                 }
                 
                 if(!this.members.includes(this.bill.payer)) {
-                    this.bill.payer = this.members[0]; 
+                    this.bill.payer = this.members[0] || ''; 
                 }
                 
                 this.initRates();
@@ -395,7 +401,6 @@
                 });
             },
             methods: {
-                // 將 HTML 入面危險嘅 < > 符號抽入嚟 Methods
                 formatBalSign(bal) {
                     return bal > 0.05 ? '+' : (bal < -0.05 ? '-' : '');
                 },
@@ -411,16 +416,19 @@
                         const promises = this.currencies.map(async (c) => {
                             if (c.code === 'HKD') return;
                             const currLower = c.code.toLowerCase();
-                            const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currLower}.json`);
-                            const data = await res.json();
-                            if (data && data[currLower] && data[currLower].hkd) {
-                                c.rate = Number(data[currLower].hkd.toFixed(5));
+                            try {
+                                const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currLower}.json`);
+                                const data = await res.json();
+                                if (data && data[currLower] && data[currLower].hkd) {
+                                    c.rate = Number(data[currLower].hkd.toFixed(5));
+                                }
+                            } catch (e) {
+                                console.warn(c.code + " API 更新失敗，將使用後備匯率");
                             }
                         });
                         await Promise.all(promises);
                     } catch (err) {
-                        console.warn("API 獲取失敗", err);
-                        alert("匯率 API 連線失敗，如果想記外幣，請手動輸入最新匯率！");
+                        console.warn("總體 API 獲取失敗", err);
                     }
                 },
                 getFlag(code) {
@@ -505,7 +513,7 @@
                     try { 
                         let result = eval(this.calcInput);
                         if (result !== undefined) this.calcInput = result.toString(); 
-                    } catch { 
+                    } catch (e) { 
                         this.calcInput = ''; 
                     } 
                 },
@@ -541,3 +549,42 @@
 
                     if (finalTotal <= 0) return alert('總金額為 0，冇嘢好記！');
                     if (!this.bill.payer) return alert('請揀付款人！');
+                    
+                    this.history.unshift({
+                        date: Date.now(),
+                        desc: this.bill.desc,
+                        payer: this.bill.payer,
+                        currency: this.activeCurr,
+                        rate: this.manualRate,
+                        total: finalTotal,
+                        splits: finalSplits
+                    });
+                    
+                    this.resetRecord(); 
+                    this.save(); 
+                    this.tab = 'history';
+                },
+                deleteRecord(id) { 
+                    if(confirm('確定要刪除這條紀錄嗎？')) {
+                        const idx = this.history.findIndex(x => x.date === id);
+                        if(idx !== -1) {
+                            this.history.splice(idx, 1); 
+                            this.save(); 
+                        }
+                    }
+                },
+                clearAllHistory() {
+                    if(confirm('警告：確定要清除所有歷史紀錄嗎？此動作無法復原！')) {
+                        this.history = [];
+                        this.save();
+                    }
+                },
+                save() { 
+                    localStorage.setItem('js_h_v7_8', JSON.stringify(this.history)); 
+                    localStorage.setItem('js_m_v7_8', JSON.stringify(this.members)); 
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
