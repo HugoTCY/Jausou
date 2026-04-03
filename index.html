@@ -54,7 +54,7 @@
             <section class="glass p-5 flex items-center justify-between">
                 <div class="text-xs font-black">匯率 (1 {{activeCurr}} ➔ HKD)</div>
                 <div class="flex items-center gap-3">
-                    <span @click="toggleRateLock" class="text-xl cursor-pointer">{{ rateLocked ? '🔒' : '🔓' }}</span>
+                    <span @click="toggleRateLock" class="text-xl cursor-pointer">{{ rateLocked ? '🔓' : '🔒' }}</span>
                     <input type="number" step="any" inputmode="decimal" v-model="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2.5 rounded-xl text-right font-mono text-sm font-bold outline-none focus:border-indigo-500">
                 </div>
             </section>
@@ -275,7 +275,7 @@
                 return {
                     tab: 'record', 
                     activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
-                    rateLocked: true, // 預設為鎖定（跟隨 API 更新）
+                    rateLocked: true, 
                     manualRate: '',
                     isPersonalMode: false, showCalc: false, showTotalDetails: false, calcInput: '',
                     tempMember: '',
@@ -384,8 +384,8 @@
             },
             mounted() {
                 try {
-                    const h = localStorage.getItem('js_h_v7_11') || localStorage.getItem('js_h_v7_10') || localStorage.getItem('js_h_v7_9');
-                    const m = localStorage.getItem('js_m_v7_11') || localStorage.getItem('js_m_v7_10') || localStorage.getItem('js_m_v7_9');
+                    const h = localStorage.getItem('js_h_v7_12') || localStorage.getItem('js_h_v7_11') || localStorage.getItem('js_h_v7_10') || localStorage.getItem('js_h_v7_9');
+                    const m = localStorage.getItem('js_m_v7_12') || localStorage.getItem('js_m_v7_11') || localStorage.getItem('js_m_v7_10') || localStorage.getItem('js_m_v7_9');
                     
                     if(h) {
                         let parsedH = JSON.parse(h);
@@ -484,8 +484,6 @@
                     this.activeCurr = code; 
                     this.updateRateAuto();
                 },
-                // 鎖定/解鎖邏輯：
-                // 如果由解鎖 🔓 變鎖定 🔒，就重新從 API 攞一次最新數
                 toggleRateLock() {
                     this.rateLocked = !this.rateLocked;
                     if (this.rateLocked) {
@@ -576,7 +574,6 @@
                     let apiRateVal = currentApiRate ? currentApiRate.rate : 1;
                     
                     let finalRate = Number(this.manualRate) || apiRateVal;
-                    // 如果冇鎖定 (🔓)，或者入嘅數字同 API 唔同，就視為手動匯率
                     let isCustomRate = this.activeCurr !== 'HKD' && (!this.rateLocked || Math.abs(finalRate - apiRateVal) > 0.000001);
                     
                     this.history.unshift({
@@ -610,8 +607,8 @@
                     }
                 },
                 save() { 
-                    localStorage.setItem('js_h_v7_11', JSON.stringify(this.history)); 
-                    localStorage.setItem('js_m_v7_11', JSON.stringify(this.members)); 
+                    localStorage.setItem('js_h_v7_12', JSON.stringify(this.history)); 
+                    localStorage.setItem('js_m_v7_12', JSON.stringify(this.members)); 
                 }
             }
         }).mount('#app')
