@@ -9,9 +9,9 @@
     <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@400;500;700;900&display=swap" rel="stylesheet">
     <style>
         body { font-family: 'Noto Sans TC', sans-serif; background-color: #0f172a; color: white; -webkit-tap-highlight-color: transparent; }
-        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 20px; }
-        .btn-blue { background: #2563eb; transition: all 0.2s; box-shadow: 0 4px 15px rgba(37, 99, 235, 0.4); }
-        .btn-blue:active { transform: scale(0.95); background: #1d4ed8; }
+        .glass { background: rgba(255, 255, 255, 0.03); backdrop-filter: blur(15px); border: 1px solid rgba(255, 255, 255, 0.08); border-radius: 16px; }
+        .btn-blue { background: #4f46e5; transition: all 0.2s; box-shadow: 0 4px 15px rgba(79, 70, 229, 0.4); }
+        .btn-blue:active { transform: scale(0.95); background: #4338ca; }
         .nav-fixed { position: fixed; bottom: 0; left: 0; right: 0; background: #0f172a; border-top: 1px solid rgba(255,255,255,0.05); z-index: 1000; height: 75px; display: flex; justify-content: space-around; align-items: center; padding-bottom: env(safe-area-inset-bottom); }
         .calc-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; }
         .calc-btn { background: rgba(255,255,255,0.05); height: 55px; border-radius: 12px; font-size: 1.25rem; font-weight: bold; display: flex; align-items: center; justify-content: center; transition: all 0.1s; }
@@ -19,33 +19,53 @@
         .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.85); z-index: 3000; display: flex; align-items: center; justify-content: center; padding: 20px; }
         .dropdown-box { position: absolute; top: 100%; left: 0; margin-top: 5px; background: #1e293b; border: 1px solid rgba(255,255,255,0.1); border-radius: 12px; z-index: 100; min-width: 120px; overflow: hidden; }
         
-        /* 閃爍提示動畫 (提示撳人頭，只在個人金額模式 ON 時出現) */
         @keyframes pulse-border { 0% { border-color: #4f46e5; box-shadow: 0 0 0 0 rgba(79,70,229,0.4); } 70% { border-color: #818cf8; box-shadow: 0 0 0 8px rgba(79,70,229,0); } 100% { border-color: #4f46e5; box-shadow: 0 0 0 0 rgba(79,70,229,0); } }
         .highlight-member { animation: pulse-border 1.5s infinite; background: rgba(79,70,229,0.15) !important; border-width: 2px !important; }
     </style>
 </head>
 <body class="pb-24">
     <div id="app" class="max-w-md mx-auto p-4">
-        <header class="py-4 text-center">
-            <h1 class="text-3xl font-black tracking-widest text-indigo-400 uppercase">找數</h1>
+        <header class="py-6 text-center">
+            <h1 class="text-4xl font-black tracking-widest text-indigo-400">找數</h1>
         </header>
 
         <div v-show="tab === 'record'" class="space-y-4">
             
-            <section class="glass p-4">
-                <div class="flex justify-between items-center mb-4">
-                    <span class="text-xs font-black opacity-40 uppercase tracking-widest">NEW BILL</span>
-                    <label class="flex items-center gap-2 text-[10px] font-black opacity-60 cursor-pointer">
-                        個人金額入數 <input type="checkbox" v-model="isPersonalMode" class="w-3.5 h-3.5">
+            <section class="glass p-5">
+                <div class="text-[11px] font-black opacity-50 mb-3">團友名單</div>
+                <div class="flex items-center bg-white/5 border border-white/10 rounded-xl p-1 mb-3">
+                    <input type="text" v-model="tempMember" @keyup.enter="addMember" placeholder="輸入名字" class="flex-1 min-w-0 bg-transparent p-3 outline-none text-sm font-bold pl-3">
+                    <button @click="addMember" class="text-indigo-400 px-4 font-black text-sm active:scale-95 transition-transform">新增</button>
+                </div>
+                <div class="flex flex-wrap gap-2">
+                    <div v-for="(m, i) in members" :key="i" class="bg-indigo-500/20 px-3 py-1.5 rounded-lg text-xs border border-indigo-500/30 font-bold flex items-center">
+                        {{m}} <span @click="removeMember(m)" class="ml-2 text-red-400/80 hover:text-red-400 cursor-pointer text-lg leading-none">×</span>
+                    </div>
+                </div>
+            </section>
+
+            <section class="glass p-5 flex items-center justify-between">
+                <div class="text-xs font-black">匯率 (1 {{activeCurr}} ➔ HKD)</div>
+                <div class="flex items-center gap-3">
+                    <span @click="toggleRateLock" class="text-xl cursor-pointer">{{ rateLocked ? '🔒' : '🔓' }}</span>
+                    <input type="number" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2.5 rounded-xl text-right font-mono text-sm font-bold outline-none focus:border-indigo-500">
+                </div>
+            </section>
+
+            <section class="glass p-5">
+                <div class="flex justify-between items-center mb-6">
+                    <span class="text-[11px] font-black opacity-40 uppercase tracking-widest">NEW BILL</span>
+                    <label class="flex items-center gap-2 text-[11px] font-black opacity-60 cursor-pointer">
+                        累加模式 <input type="checkbox" v-model="isPersonalMode" class="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500">
                     </label>
                 </div>
 
-                <div @click="showCalc = !showCalc" class="bg-indigo-900/40 rounded-2xl py-10 text-6xl font-black text-center mb-6 border border-white/5 cursor-pointer hover:bg-white/10 active:scale-95 transition-all text-indigo-100 relative">
-                    {{ isPersonalMode ? billTotal : bill.total || currentInputValue || '0' }}
-                    <span class="absolute bottom-2 right-4 text-[11px] font-black opacity-30">{{ isPersonalMode ? '(個人金額累加)' : '(打完數成交)' }}</span>
+                <div @click="showCalc = !showCalc" class="bg-white/5 rounded-2xl py-12 text-6xl font-black text-center mb-6 border border-white/10 cursor-pointer active:bg-white/10 transition-all text-white relative">
+                    {{ isPersonalMode ? billTotal : (bill.total || currentInputValue || '0') }}
+                    <span v-if="isPersonalMode && currentInputValue > 0" class="absolute top-2 right-3 text-[10px] text-indigo-400 opacity-80">計數機: {{currentInputValue}}</span>
                 </div>
 
-                <div v-if="showCalc" class="bg-[#1e293b] p-4 rounded-2xl border border-white/5 mb-6">
+                <div v-if="showCalc" class="bg-[#1e293b] p-4 rounded-2xl border border-white/10 mb-6 shadow-xl">
                     <div class="text-right text-3xl font-mono font-black text-indigo-400 h-10 mb-2 truncate border-b border-white/5 pb-2 tracking-wider">
                         {{ calcInput || '0' }}
                     </div>
@@ -79,40 +99,40 @@
                 <div class="grid grid-cols-4 gap-2 mb-8">
                     <button v-for="c in currencies" @click="changeCurrency(c.code)" :class="['py-3 rounded-xl border flex flex-col items-center transition-all', activeCurr === c.code ? 'bg-indigo-600 border-indigo-400 shadow-lg shadow-indigo-500/30' : 'bg-white/5 border-white/10 opacity-40']">
                         <span class="text-xl">{{getFlag(c.code)}}</span>
-                        <span class="text-[10px] font-black mt-1">{{c.code}}</span>
+                        <span class="text-[11px] font-black mt-1">{{c.code}}</span>
                     </button>
                 </div>
 
                 <div class="mb-8">
-                    <p class="text-[10px] opacity-40 font-black uppercase mb-4 text-center tracking-widest italic">揀邊個要分攤費用</p>
+                    <p class="text-[11px] opacity-40 font-black mb-4 text-center italic">揀邊個要分攤費用</p>
                     <div class="flex justify-between items-center mb-2" v-if="isPersonalMode">
-                        <span class="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 px-2 py-1 rounded">入數區：打完數字撳人名 👇</span>
+                        <span class="text-[10px] text-indigo-400 font-bold bg-indigo-500/10 px-2 py-1 rounded">入完數撳人名 👇</span>
                         <button @click="resetSplits" class="text-[10px] opacity-40 hover:opacity-100 underline">重置金額</button>
                     </div>
                     
                     <div class="grid grid-cols-2 gap-2 mb-4">
                         <button v-for="m in members" :key="m" @click="handleMemberClick(m)" 
-                                :class="['p-3 rounded-xl border flex justify-between items-center transition-all', 
+                                :class="['p-4 rounded-xl border flex justify-between items-center transition-all', 
                                          !isPersonalMode && bill.splitWith.includes(m) ? 'bg-indigo-600 border-indigo-400' : 
                                          !isPersonalMode && !bill.splitWith.includes(m) ? 'bg-white/5 border-white/10 opacity-30' : 
                                          isPersonalMode && currentInputValue > 0 ? 'highlight-member cursor-pointer' : 
-                                         isPersonalMode && bill.splits[m] > 0 ? 'bg-indigo-900/30 border-indigo-500/50' : 
-                                         isPersonalMode ? 'bg-white/5 border-white/10 opacity-70' : '']">
+                                         isPersonalMode && bill.splits[m] > 0 ? 'bg-indigo-900/40 border-indigo-500/50' : 
+                                         isPersonalMode ? 'bg-white/5 border-white/10 opacity-60' : '']">
                             <span class="font-black text-sm">{{m}}</span>
-                            <span class="font-mono font-black text-indigo-300">{{ isPersonalMode ? (bill.splits[m] || 0) : '' }}</span>
+                            <span class="font-mono font-black text-indigo-200">{{ isPersonalMode && bill.splits[m] > 0 ? bill.splits[m] : '' }}</span>
                         </button>
                     </div>
                 </div>
 
                 <div class="space-y-4">
                     <div>
-                        <p class="text-[10px] opacity-40 font-black uppercase mb-1 ml-1">項目備註</p>
-                        <input type="text" v-model="bill.desc" placeholder="..." class="w-full bg-white/5 border border-white/10 p-3.5 rounded-xl font-bold text-sm outline-none focus:border-indigo-500">
+                        <p class="text-[11px] opacity-40 font-black mb-1 ml-1">項目備註</p>
+                        <input type="text" v-model="bill.desc" placeholder="..." class="w-full bg-white/5 border border-white/10 p-4 rounded-xl font-bold text-sm outline-none focus:border-indigo-500">
                     </div>
                     <div class="relative bg-white/5 border border-white/10 p-4 rounded-xl flex items-center justify-between cursor-pointer" @click.stop="showPayerMenu = !showPayerMenu">
-                        <span class="text-[10px] opacity-40 font-black uppercase">付款人</span>
+                        <span class="text-[11px] opacity-40 font-black">付款人</span>
                         <div class="flex items-center gap-2">
-                            <span class="font-black text-indigo-300">{{ bill.payer || '選人' }}</span>
+                            <span class="font-black text-indigo-300 text-sm">{{ bill.payer || '選人' }}</span>
                             <span class="text-[10px] opacity-30">▼</span>
                         </div>
                         <div v-if="showPayerMenu" class="dropdown-box">
@@ -121,7 +141,7 @@
                     </div>
                 </div>
 
-                <button @click="saveFinalRecord" class="w-full bg-indigo-600 active:bg-indigo-700 mt-8 py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-lg shadow-indigo-500/20">確認紀錄</button>
+                <button @click="saveFinalRecord" class="w-full bg-indigo-600 active:bg-indigo-700 mt-8 py-4 rounded-2xl font-black text-sm tracking-widest shadow-lg shadow-indigo-500/20">確認紀錄</button>
             </section>
         </div>
 
@@ -138,7 +158,7 @@
                         
                         <div class="flex justify-between items-end mb-3 pr-6">
                             <div>
-                                <div class="font-bold text-sm text-indigo-100">{{ h.desc || '冇寫備註' }}</div>
+                                <div class="font-bold text-sm text-indigo-100">{{ h.desc || '無備註' }}</div>
                                 <div class="text-[10px] opacity-40 font-bold mt-0.5">{{ formatDate(h.date) }} • {{ h.payer }} 墊付</div>
                             </div>
                             <div class="text-right">
@@ -228,13 +248,21 @@
         createApp({
             data() {
                 return {
-                    tab: 'record', activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
+                    tab: 'record', 
+                    activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
+                    rateLocked: false, manualRate: 0.051,
                     isPersonalMode: false, showCalc: false, showTotalDetails: false, calcInput: '',
-                    members: ['A', 'B'], // 測試用，之後可以手動新增
+                    tempMember: '',
+                    members: ['a', 'b'], 
                     history: [],
-                    bill: { total: 0, desc: '', payer: 'A', splitWith: [], splits: {} },
+                    bill: { total: 0, desc: '', payer: 'a', splitWith: [], splits: {} },
                     showPayerMenu: false, showSettleMenu: false,
-                    currencies: [{ code: 'HKD', rate: 1 }, { code: 'JPY', rate: 0.051 }, { code: 'KRW', rate: 0.0056 }, { code: 'TWD', rate: 0.24 }]
+                    currencies: [
+                        { code: 'HKD', rate: 1 }, 
+                        { code: 'JPY', rate: 0.051 }, 
+                        { code: 'KRW', rate: 0.0056 }, 
+                        { code: 'TWD', rate: 0.24 }
+                    ]
                 }
             },
             computed: {
@@ -242,12 +270,14 @@
                     try { return parseFloat(eval(this.calcInput)) || 0; } catch { return 0; }
                 },
                 billTotal() {
-                    return this.isPersonalMode ? Object.values(this.bill.splits).reduce((a, b) => a + b, 0) : (this.bill.total || 0);
+                    return this.isPersonalMode ? Object.values(this.bill.splits).reduce((acc, curr) => acc + curr, 0) : (this.bill.total || 0);
                 },
-                // 結算與轉換邏輯
-                totalExpenseHKD() { return this.history.reduce((sum, h) => sum + (h.total * h.rate), 0); },
+                totalExpenseHKD() { 
+                    return this.history.reduce((sum, h) => sum + (h.total * h.rate), 0); 
+                },
                 individualSpendings() {
-                    let res = {}; this.members.forEach(m => res[m] = 0);
+                    let res = {}; 
+                    this.members.forEach(m => res[m] = 0);
                     const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate;
                     this.history.forEach(h => {
                         for(let m in h.splits) {
@@ -256,14 +286,16 @@
                     });
                     return res;
                 },
-                groupTotalSpending() { return this.totalExpenseHKD / this.currencies.find(c => c.code === this.detailsCurr).rate; },
+                groupTotalSpending() { 
+                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate;
+                    return this.totalExpenseHKD / targetRate; 
+                },
                 balances() {
-                    let b = {}; this.members.forEach(m => b[m] = 0);
+                    let b = {}; 
+                    this.members.forEach(m => b[m] = 0);
                     const targetRate = this.currencies.find(c => c.code === this.settleCurr).rate;
                     this.history.forEach(h => {
-                        // 付款人獲得墊付款
                         b[h.payer] += (h.total * h.rate) / targetRate;
-                        // 每個人扣除自己消費嘅部分
                         for(let m in h.splits) {
                             b[m] -= (h.splits[m] * h.rate) / targetRate;
                         }
@@ -276,53 +308,93 @@
                         if (this.balances[m] > 0.1) takers.push({ name: m, amt: this.balances[m] });
                         else if (this.balances[m] < -0.1) givers.push({ name: m, amt: Math.abs(this.balances[m]) });
                     }
-                    givers.sort((a,b)=>b.amt-a.amt); takers.sort((a,b)=>b.amt-a.amt);
-                    givers.forEach(g => { takers.forEach(t => {
-                        if (g.amt <= 0 || t.amt <= 0) return;
-                        let move = Math.min(g.amt, t.amt);
-                        res.push({ from: g.name, to: t.name, amount: move });
-                        g.amt -= move; t.amt -= move;
-                    });});
+                    givers.sort((a,b)=>b.amt-a.amt); 
+                    takers.sort((a,b)=>b.amt-a.amt);
+                    givers.forEach(g => { 
+                        takers.forEach(t => {
+                            if (g.amt <= 0 || t.amt <= 0) return;
+                            let move = Math.min(g.amt, t.amt);
+                            res.push({ from: g.name, to: t.name, amount: move });
+                            g.amt -= move; t.amt -= move;
+                        });
+                    });
                     return res;
                 }
             },
             mounted() {
-                const h = localStorage.getItem('js_h_v7_2'), m = localStorage.getItem('js_m_v7_2');
+                const h = localStorage.getItem('js_h_v7_3');
+                const m = localStorage.getItem('js_m_v7_3');
                 if(h) this.history = JSON.parse(h);
                 if(m) { 
                     this.members = JSON.parse(m); 
-                    if(this.members.length > 0) this.bill.payer = this.members[0]; 
+                    if(this.members.length > 0 && !this.members.includes(this.bill.payer)) {
+                        this.bill.payer = this.members[0]; 
+                    }
                 }
+                this.updateRateAuto();
                 this.resetRecord();
-                // 點擊空白處關閉選單
-                document.addEventListener('click', () => { this.showPayerMenu = this.showSettleMenu = false; });
+                document.addEventListener('click', () => { 
+                    this.showPayerMenu = false;
+                    this.showSettleMenu = false; 
+                });
             },
             methods: {
-                // UI & 基礎設定
+                getFlag(code) {
+                    const flags = { HKD: '🇭🇰', JPY: '🇯🇵', KRW: '🇰🇷', TWD: '🇹🇼' };
+                    return flags[code] || '💰';
+                },
+                formatDate(ts) {
+                    const d = new Date(ts);
+                    const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+                    const dd = d.getDate().toString().padStart(2, '0');
+                    const h = d.getHours().toString().padStart(2, '0');
+                    const m = d.getMinutes().toString().padStart(2, '0');
+                    return `${mo}-${dd} ${h}:${m}`;
+                },
                 addMember() { 
-                    // ... (維持之前的 addMember 邏輯)
+                    const name = this.tempMember.trim();
+                    if (name && !this.members.includes(name)) { 
+                        this.members.push(name); 
+                        this.bill.splitWith.push(name);
+                        this.bill.splits[name] = 0; 
+                        if(!this.bill.payer) this.bill.payer = name;
+                        this.tempMember = ''; 
+                        this.save(); 
+                    } 
                 },
                 removeMember(m) { 
-                    // ... (維持之前的 removeMember 邏輯)
+                    this.members = this.members.filter(x => x !== m);
+                    this.bill.splitWith = this.bill.splitWith.filter(x => x !== m);
+                    delete this.bill.splits[m];
+                    if(this.bill.payer === m) this.bill.payer = this.members[0] || '';
+                    this.save(); 
                 },
-                changeCurrency(code) { this.activeCurr = code; },
-                
-                // 聰明 UI：整合團友按鈕
+                changeCurrency(code) { 
+                    this.activeCurr = code; 
+                    this.updateRateAuto();
+                },
+                toggleRateLock() {
+                    this.rateLocked = !this.rateLocked;
+                    this.updateRateAuto();
+                },
+                updateRateAuto() {
+                    if (!this.rateLocked) {
+                        this.manualRate = this.currencies.find(c => c.code === this.activeCurr).rate;
+                    }
+                },
                 handleMemberClick(m) {
                     if (this.isPersonalMode) {
-                        // 【情景 A】：個人金額累加 (打數 ➜ 撳人分配)
                         let val = this.currentInputValue;
                         if(val > 0) {
                             this.bill.splits[m] = (this.bill.splits[m] || 0) + val;
-                            this.calcInput = ''; // 入完數清空計數機
+                            this.calcInput = ''; 
                         }
                     } else {
-                        // 【情景 C】：全單匀分，但有些人不分攤 (剔號选人 Checkbox)
                         const idx = this.bill.splitWith.indexOf(m);
                         if (idx > -1) {
-                            this.bill.splitWith.splice(idx, 1); // 剔走 (不剔選)
+                            this.bill.splitWith.splice(idx, 1); 
                         } else {
-                            this.bill.splitWith.push(m); // 剔選
+                            this.bill.splitWith.push(m); 
                         }
                     }
                 },
@@ -333,36 +405,33 @@
                 resetRecord() {
                     this.bill.total = 0;
                     this.bill.desc = '';
-                    this.bill.splitWith = [...this.members]; // 預設全剔
+                    this.bill.splitWith = [...this.members]; 
                     this.members.forEach(m => this.bill.splits[m] = 0);
                     this.calcInput = '';
+                    this.showCalc = false;
                 },
-                
-                // 計算機與 Save 邏輯
-                calcExec() { try { this.calcInput = eval(this.calcInput).toString(); } catch { this.calcInput = ''; } },
+                calcExec() { 
+                    try { 
+                        let result = eval(this.calcInput);
+                        if (result !== undefined) this.calcInput = result.toString(); 
+                    } catch { 
+                        this.calcInput = ''; 
+                    } 
+                },
                 calcConfirmOK() {
-                    // 藍色 OK 掣功能重新定義
                     if (this.isPersonalMode) {
-                        // 個別入數模式下，OK 掣淨係用嚟成交（如果你打咗數但冇分配，會被忽略）
-                        this.saveRecord();
+                        this.showCalc = false;
                     } else {
-                        // 平分模式下，OK 掣將計數機嘅總金額 Save 落去，並收起計數機
                         this.calcExec();
                         const val = parseFloat(this.calcInput) || 0;
                         if(val > 0) {
                             this.bill.total = val;
-                            this.showCalc = false; // 收起計數機
                         }
+                        this.showCalc = false;
                         this.calcInput = '';
                     }
                 },
-                
                 saveFinalRecord() {
-                    // 底部大按鈕：確認紀錄 (成交整筆帳單)
-                    this.saveRecord();
-                },
-                
-                saveRecord() {
                     if (this.isPersonalMode && (this.calcInput !== '' && this.calcInput !== '0')) {
                         return alert('計數機仲有數字未分配！\n請先撳團友名字入數，或者撳C清除。');
                     }
@@ -370,16 +439,12 @@
                     let finalTotal = this.isPersonalMode ? this.billTotal : (this.bill.total || 0);
                     let finalSplits = JSON.parse(JSON.stringify(this.bill.splits));
                     
-                    // 【醒目整合邏輯】
                     if (!this.isPersonalMode && finalTotal > 0) {
-                        // 情景 C：勻分但有些人不分攤。將總金額匀分給剔選的人。
                         if (this.bill.splitWith.length === 0) {
                             return alert('請至少揀一個分攤費用嘅團友！');
                         }
                         let perPerson = finalTotal / this.bill.splitWith.length;
-                        // 先重置 splits
                         this.members.forEach(m => finalSplits[m] = 0);
-                        // 再勻分給剔選的人
                         this.bill.splitWith.forEach(m => finalSplits[m] = perPerson);
                     }
 
@@ -391,17 +456,15 @@
                         desc: this.bill.desc,
                         payer: this.bill.payer,
                         currency: this.activeCurr,
-                        rate: this.currencies.find(c => c.code === this.activeCurr).rate, // 預設抓取
+                        rate: this.manualRate,
                         total: finalTotal,
                         splits: finalSplits
                     });
                     
-                    this.resetRecord(); // Save 完重置
+                    this.resetRecord(); 
                     this.save(); 
                     this.tab = 'history';
                 },
-                
-                // ... (維持之前的歷史管理邏輯)
                 deleteRecord(i) { 
                     if(confirm('確定要刪除這條紀錄嗎？')) {
                         this.history.splice(i, 1); 
@@ -415,11 +478,9 @@
                     }
                 },
                 save() { 
-                    localStorage.setItem('js_h_v7_2', JSON.stringify(this.history)); 
-                    localStorage.setItem('js_m_v7_2', JSON.stringify(this.members)); 
-                },
-                getFlag(code) { //... }
-                formatDate(ts) { //... }
+                    localStorage.setItem('js_h_v7_3', JSON.stringify(this.history)); 
+                    localStorage.setItem('js_m_v7_3', JSON.stringify(this.members)); 
+                }
             }
         }).mount('#app')
     </script>
