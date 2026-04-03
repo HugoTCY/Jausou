@@ -55,7 +55,7 @@
                 <div class="text-xs font-black">匯率 (1 {{activeCurr}} ➔ HKD)</div>
                 <div class="flex items-center gap-3">
                     <span @click="toggleRateLock" class="text-xl cursor-pointer">{{ rateLocked ? '🔒' : '🔓' }}</span>
-                    <input type="number" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2.5 rounded-xl text-right font-mono text-sm font-bold outline-none focus:border-indigo-500">
+                    <input type="number" step="any" inputmode="decimal" v-model.number="manualRate" :disabled="rateLocked" class="w-24 bg-white/5 border border-white/10 p-2.5 rounded-xl text-right font-mono text-sm font-bold outline-none focus:border-indigo-500">
                 </div>
             </section>
 
@@ -181,7 +181,7 @@
                                 <div class="font-bold text-sm text-indigo-100">{{ h.desc || '無備註' }}</div>
                                 <div class="text-[10px] opacity-40 font-bold mt-0.5">
                                     {{ formatDate(h.date) }} • {{ h.payer }} 墊付
-                                    <span v-if="h.currency !== 'HKD'" class="text-indigo-300 ml-1"> • 匯率: {{ h.rate }}</span>
+                                    <span v-if="h.isManualRate" class="text-indigo-300 ml-1"> • 手動匯率: {{ h.rate }}</span>
                                 </div>
                             </div>
                             <div class="text-right">
@@ -283,7 +283,6 @@
                     historyFilterPayer: '全部', 
                     bill: { total: 0, desc: '', payer: 'a', splitWith: [], splits: {} },
                     showPayerMenu: false, showSettleMenu: false, showFilterMenu: false,
-                    // 加返合理嘅 Fallback 匯率防斷網
                     currencies: [
                         { code: 'HKD', rate: 1 }, 
                         { code: 'JPY', rate: 0.051 }, 
@@ -384,8 +383,9 @@
             },
             mounted() {
                 try {
-                    const h = localStorage.getItem('js_h_v7_9') || localStorage.getItem('js_h_v7_8') || localStorage.getItem('js_h_v7_7') || localStorage.getItem('js_h_v7_6');
-                    const m = localStorage.getItem('js_m_v7_9') || localStorage.getItem('js_m_v7_8') || localStorage.getItem('js_m_v7_7') || localStorage.getItem('js_m_v7_6');
+                    // 保留舊版本數據，自動升級
+                    const h = localStorage.getItem('js_h_v7_10') || localStorage.getItem('js_h_v7_9') || localStorage.getItem('js_h_v7_8');
+                    const m = localStorage.getItem('js_m_v7_10') || localStorage.getItem('js_m_v7_9') || localStorage.getItem('js_m_v7_8');
                     
                     if(h) {
                         let parsedH = JSON.parse(h);
@@ -568,12 +568,19 @@
                     if (finalTotal <= 0) return alert('總金額為 0，冇嘢好記！');
                     if (!this.bill.payer) return alert('請揀付款人！');
                     
+                    // 檢查係咪手動改過匯率
+                    let currentApiRate = this.currencies.find(c => c.code === this.activeCurr);
+                    let apiRateVal = currentApiRate ? currentApiRate.rate : 1;
+                    // 如果手動入嘅數同 API 唔同，就 mark 低 isManualRate 為 true
+                    let isCustomRate = this.activeCurr !== 'HKD' && Math.abs(Number(this.manualRate) - apiRateVal) > 0.000001;
+                    
                     this.history.unshift({
                         date: Date.now(),
                         desc: this.bill.desc,
                         payer: this.bill.payer,
                         currency: this.activeCurr,
-                        rate: this.manualRate,
+                        rate: Number(this.manualRate),
+                        isManualRate: isCustomRate, // 新增呢個標籤
                         total: finalTotal,
                         splits: finalSplits
                     });
@@ -598,8 +605,8 @@
                     }
                 },
                 save() { 
-                    localStorage.setItem('js_h_v7_9', JSON.stringify(this.history)); 
-                    localStorage.setItem('js_m_v7_9', JSON.stringify(this.members)); 
+                    localStorage.setItem('js_h_v7_10', JSON.stringify(this.history)); 
+                    localStorage.setItem('js_m_v7_10', JSON.stringify(this.members)); 
                 }
             }
         }).mount('#app')
