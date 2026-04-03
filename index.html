@@ -267,4 +267,293 @@
                     activeCurr: 'JPY', settleCurr: 'HKD', detailsCurr: 'HKD',
                     rateLocked: false, manualRate: 0,
                     isPersonalMode: false, showCalc: false, showTotalDetails: false, calcInput: '',
-                    tempMember
+                    tempMember: '',
+                    members: ['a', 'b'], 
+                    history: [],
+                    historyFilterPayer: '全部', 
+                    bill: { total: 0, desc: '', payer: 'a', splitWith: [], splits: {} },
+                    showPayerMenu: false, showSettleMenu: false, showFilterMenu: false,
+                    // 已經清除晒 hardcode 匯率，全權交俾 API 負責
+                    currencies: [
+                        { code: 'HKD', rate: 1 }, 
+                        { code: 'JPY', rate: 0 }, 
+                        { code: 'KRW', rate: 0 }, 
+                        { code: 'TWD', rate: 0 }
+                    ]
+                }
+            },
+            computed: {
+                currentInputValue() {
+                    try { return parseFloat(eval(this.calcInput)) || 0; } catch { return 0; }
+                },
+                billTotal() {
+                    return this.isPersonalMode ? Object.values(this.bill.splits).reduce((acc, curr) => acc + curr, 0) : (this.bill.total || 0);
+                },
+                filteredHistory() {
+                    if (this.historyFilterPayer === '全部') {
+                        return this.history;
+                    }
+                    return this.history.filter(h => h.payer === this.historyFilterPayer);
+                },
+                
+                individualSpendings() {
+                    let res = {}; 
+                    this.members.forEach(m => res[m] = 0);
+                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate || 1;
+                    this.history.forEach(h => {
+                        for(let m in h.splits) {
+                            if(res[m] !== undefined) {
+                                if (h.currency === this.detailsCurr) {
+                                    res[m] += h.splits[m];
+                                } else {
+                                    res[m] += (h.splits[m] * h.rate) / targetRate;
+                                }
+                            }
+                        }
+                    });
+                    return res;
+                },
+                groupTotalSpending() { 
+                    const targetRate = this.currencies.find(c => c.code === this.detailsCurr).rate || 1;
+                    return this.history.reduce((sum, h) => {
+                        if (h.currency === this.detailsCurr) {
+                            return sum + h.total;
+                        } else {
+                            return sum + (h.total * h.rate) / targetRate;
+                        }
+                    }, 0);
+                },
+                balances() {
+                    let b = {}; 
+                    this.members.forEach(m => b[m] = 0);
+                    const targetRate = this.currencies.find(c => c.code === this.settleCurr).rate || 1;
+                    this.history.forEach(h => {
+                        let billTotalTarget = h.currency === this.settleCurr ? h.total : (h.total * h.rate) / targetRate;
+                        b[h.payer] += billTotalTarget;
+                        for(let m in h.splits) {
+                            if(b[m] !== undefined) {
+                                let splitTarget = h.currency === this.settleCurr ? h.splits[m] : (h.splits[m] * h.rate) / targetRate;
+                                b[m] -= splitTarget;
+                            }
+                        }
+                    });
+                    return b;
+                },
+                transfers() {
+                    let res = [], givers = [], takers = [];
+                    for (let m in this.balances) {
+                        if (this.balances[m] > 0.1) takers.push({ name: m, amt: this.balances[m] });
+                        else if (this.balances[m] < -0.1) givers.push({ name: m, amt: Math.abs(this.balances[m]) });
+                    }
+                    givers.sort((a,b)=>b.amt-a.amt); 
+                    takers.sort((a,b)=>b.amt-a.amt);
+                    givers.forEach(g => { 
+                        takers.forEach(t => {
+                            if (g.amt <= 0 || t.amt <= 0) return;
+                            let move = Math.min(g.amt, t.amt);
+                            res.push({ from: g.name, to: t.name, amount: move });
+                            g.amt -= move; t.amt -= move;
+                        });
+                    });
+                    return res;
+                }
+            },
+            mounted() {
+                const h = localStorage.getItem('js_h_v7_6');
+                const m = localStorage.getItem('js_m_v7_6');
+                if(h) this.history = JSON.parse(h);
+                if(m) { 
+                    this.members = JSON.parse(m); 
+                    if(this.members.length > 0 && !this.members.includes(this.bill.payer)) {
+                        this.bill.payer = this.members[0]; 
+                    }
+                }
+                
+                this.initRates();
+                this.resetRecord();
+                
+                document.addEventListener('click', () => { 
+                    this.showPayerMenu = false;
+                    this.showSettleMenu = false; 
+                    this.showFilterMenu = false;
+                });
+            },
+            methods: {
+                async initRates() {
+                    await this.fetchAllRatesAPI();
+                    this.updateRateAuto();
+                },
+                async fetchAllRatesAPI() {
+                    try {
+                        const promises = this.currencies.map(async (c) => {
+                            if (c.code === 'HKD') return;
+                            const currLower = c.code.toLowerCase();
+                            const res = await fetch(`https://cdn.jsdelivr.net/npm/@fawazahmed0/currency-api@latest/v1/currencies/${currLower}.json`);
+                            const data = await res.json();
+                            if (data && data[currLower] && data[currLower].hkd) {
+                                c.rate = Number(data[currLower].hkd.toFixed(5));
+                            }
+                        });
+                        await Promise.all(promises);
+                    } catch (err) {
+                        console.warn("API 獲取失敗", err);
+                        alert("匯率 API 連線失敗，如果想記外幣，請手動輸入最新匯率！");
+                    }
+                },
+                getFlag(code) {
+                    const flags = { HKD: '🇭🇰', JPY: '🇯🇵', KRW: '🇰🇷', TWD: '🇹🇼' };
+                    return flags[code] || '💰';
+                },
+                formatDate(ts) {
+                    const d = new Date(ts);
+                    const mo = (d.getMonth() + 1).toString().padStart(2, '0');
+                    const dd = d.getDate().toString().padStart(2, '0');
+                    const h = d.getHours().toString().padStart(2, '0');
+                    const m = d.getMinutes().toString().padStart(2, '0');
+                    return `${mo}-${dd} ${h}:${m}`;
+                },
+                addMember() { 
+                    const name = this.tempMember.trim();
+                    if (name && !this.members.includes(name)) { 
+                        this.members.push(name); 
+                        this.bill.splitWith.push(name);
+                        this.bill.splits[name] = 0; 
+                        if(!this.bill.payer) this.bill.payer = name;
+                        this.tempMember = ''; 
+                        this.save(); 
+                    } 
+                },
+                removeMember(m) { 
+                    this.members = this.members.filter(x => x !== m);
+                    this.bill.splitWith = this.bill.splitWith.filter(x => x !== m);
+                    delete this.bill.splits[m];
+                    if(this.bill.payer === m) this.bill.payer = this.members[0] || '';
+                    if(this.historyFilterPayer === m) this.historyFilterPayer = '全部';
+                    this.save(); 
+                },
+                changeCurrency(code) { 
+                    this.activeCurr = code; 
+                    this.updateRateAuto();
+                },
+                toggleRateLock() {
+                    this.rateLocked = !this.rateLocked;
+                    this.updateRateAuto();
+                },
+                updateRateAuto() {
+                    if (this.rateLocked) return;
+                    if (this.activeCurr === 'HKD') {
+                        this.manualRate = 1;
+                        return;
+                    }
+                    const target = this.currencies.find(c => c.code === this.activeCurr);
+                    if (target) {
+                        this.manualRate = target.rate;
+                    }
+                },
+                handleMemberClick(m) {
+                    if (this.isPersonalMode) {
+                        let val = this.currentInputValue;
+                        if(val > 0) {
+                            this.bill.splits[m] = (this.bill.splits[m] || 0) + val;
+                            this.calcInput = ''; 
+                        }
+                    } else {
+                        const idx = this.bill.splitWith.indexOf(m);
+                        if (idx > -1) {
+                            this.bill.splitWith.splice(idx, 1); 
+                        } else {
+                            this.bill.splitWith.push(m); 
+                        }
+                    }
+                },
+                resetSplits() {
+                    this.members.forEach(m => this.bill.splits[m] = 0);
+                    this.calcInput = '';
+                },
+                resetRecord() {
+                    this.bill.total = 0;
+                    this.bill.desc = '';
+                    this.bill.splitWith = [...this.members]; 
+                    this.members.forEach(m => this.bill.splits[m] = 0);
+                    this.calcInput = '';
+                    this.showCalc = false;
+                },
+                calcExec() { 
+                    try { 
+                        let result = eval(this.calcInput);
+                        if (result !== undefined) this.calcInput = result.toString(); 
+                    } catch { 
+                        this.calcInput = ''; 
+                    } 
+                },
+                calcConfirmOK() {
+                    if (this.isPersonalMode) {
+                        this.showCalc = false;
+                    } else {
+                        this.calcExec();
+                        const val = parseFloat(this.calcInput) || 0;
+                        if(val > 0) {
+                            this.bill.total = val;
+                        }
+                        this.showCalc = false;
+                        this.calcInput = '';
+                    }
+                },
+                saveFinalRecord() {
+                    if (this.isPersonalMode && (this.calcInput !== '' && this.calcInput !== '0')) {
+                        return alert('計數機仲有數字未分配！\n請先撳團友名字入數，或者撳C清除。');
+                    }
+                    
+                    let finalTotal = this.isPersonalMode ? this.billTotal : (this.bill.total || 0);
+                    let finalSplits = JSON.parse(JSON.stringify(this.bill.splits));
+                    
+                    if (!this.isPersonalMode && finalTotal > 0) {
+                        if (this.bill.splitWith.length === 0) {
+                            return alert('請至少揀一個分攤費用嘅團友！');
+                        }
+                        let perPerson = finalTotal / this.bill.splitWith.length;
+                        this.members.forEach(m => finalSplits[m] = 0);
+                        this.bill.splitWith.forEach(m => finalSplits[m] = perPerson);
+                    }
+
+                    if (finalTotal <= 0) return alert('總金額為 0，冇嘢好記！');
+                    if (!this.bill.payer) return alert('請揀付款人！');
+                    
+                    this.history.unshift({
+                        date: Date.now(),
+                        desc: this.bill.desc,
+                        payer: this.bill.payer,
+                        currency: this.activeCurr,
+                        rate: this.manualRate,
+                        total: finalTotal,
+                        splits: finalSplits
+                    });
+                    
+                    this.resetRecord(); 
+                    this.save(); 
+                    this.tab = 'history';
+                },
+                deleteRecord(id) { 
+                    if(confirm('確定要刪除這條紀錄嗎？')) {
+                        const idx = this.history.findIndex(x => x.date === id);
+                        if(idx !== -1) {
+                            this.history.splice(idx, 1); 
+                            this.save(); 
+                        }
+                    }
+                },
+                clearAllHistory() {
+                    if(confirm('警告：確定要清除所有歷史紀錄嗎？此動作無法復原！')) {
+                        this.history = [];
+                        this.save();
+                    }
+                },
+                save() { 
+                    localStorage.setItem('js_h_v7_6', JSON.stringify(this.history)); 
+                    localStorage.setItem('js_m_v7_6', JSON.stringify(this.members)); 
+                }
+            }
+        }).mount('#app')
+    </script>
+</body>
+</html>
